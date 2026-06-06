@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>立创账号管理器</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3a0ca3;
+            --accent-color: #4cc9f0;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fb;
+            color: var(--dark-color);
+            padding-top: 20px;
+            padding-bottom: 50px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            border-bottom: none;
+            padding: 15px 20px;
+        }
+        
+        .account-card {
+            background-color: white;
+        }
+        
+        .account-group {
+            margin-bottom: 25px;
+        }
+        
+        .search-section, .password-update-section {
+            background-color: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            margin-bottom: 30px;
+        }
+
+        .password-update-section {
+            border-left: 5px solid var(--accent-color);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-weight: 600;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+        
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+            border-radius: 8px;
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+            color: white;
+        }
+        
+        .form-control {
+            border-radius: 8px;
+            padding: 12px 15px;
+            border: 1px solid #e1e5eb;
+        }
+        
+        .form-control:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+        }
+        
+        .file-upload {
+            background-color: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            margin-bottom: 30px;
+        }
+        
+        .file-upload-label {
+            display: block;
+            padding: 40px 20px;
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .file-upload-label:hover {
+            border-color: var(--primary-color);
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+        
+        .file-upload-label i {
+            font-size: 48px;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+        
+        .result-section {
+            display: none;
+        }
+        
+        .highlight {
+            background-color: #fff9c4;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        
+        .copy-btn {
+            margin-top: 10px;
+        }
+        
+        .stats {
+            background-color: white;
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            margin-bottom: 20px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #6c757d;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .error-message {
+            display: none;
+            margin-top: 10px;
+        }
+
+        .duplicate-details {
+            background-color: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            margin-bottom: 20px;
+        }
+
+        .duplicate-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .duplicate-list ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        /* 搜索区域的Tab样式 */
+        .nav-tabs .nav-link {
+            color: var(--dark-color);
+            cursor: pointer;
+        }
+        .nav-tabs .nav-link.active {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        /* 密码更新日志样式 */
+        .update-log-container {
+            max-height: 300px;
+            overflow-y: auto;
+            background-color: #212529;
+            color: #00ff00;
+            font-family: 'Consolas', monospace;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+        .log-entry { margin-bottom: 4px; }
+        .log-info { color: #4cc9f0; }
+        .log-warn { color: #f39c12; }
+        .log-success { color: #2ecc71; }
+        .log-add { color: #e74c3c; font-weight: bold;}
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .card-header {
+                padding: 12px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header text-center">
+            <h1><i class="fas fa-users me-2"></i>立创自动签到账号管理器</h1>
+            <p class="lead mb-0">本网页是用来方便我给嘉立创自动签到账号分组的😂，上传没反应就换浏览器</p>
+        </div>
+        
+        <div class="file-upload">
+            <h3 class="mb-3"><i class="fas fa-file-upload me-2"></i>上传账号文件 (去重/分组)</h3>
+            <p class="text-muted mb-4">上传包含账号信息的文本文件（格式：账号:密码），这与jlc-auto-finish-account的输出文件格式相同</p>
+            <label for="fileInput" class="file-upload-label">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <h4>点击或拖拽文件到这里</h4>
+                <p class="text-muted">仅支持 .txt 格式文件</p>
+            </label>
+            <input type="file" id="fileInput" class="d-none" accept=".txt">
+            <div class="alert alert-danger error-message" id="errorMessage"></div>
+        </div>
+        
+        <div class="row stats" id="statsSection" style="display: none;">
+            <div class="col-md-4 stat-item">
+                <div class="stat-value" id="totalAccounts">0</div>
+                <div class="stat-label">总账号数</div>
+            </div>
+            <div class="col-md-4 stat-item">
+                <div class="stat-value" id="totalGroups">0</div>
+                <div class="stat-label">分组数量</div>
+            </div>
+            <div class="col-md-4 stat-item">
+                <div class="stat-value" id="lastGroupCount">0</div>
+                <div class="stat-label">最后一组账号数</div>
+            </div>
+        </div>
+
+        <div class="duplicate-details" id="duplicateDetails" style="display: none;">
+            <h5><i class="fas fa-exclamation-triangle me-2"></i>重复账号详情</h5>
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <strong>原文件账号个数:</strong> <span id="originalCount">0</span>
+                </div>
+                <div class="col-md-3">
+                    <strong>重复账号个数:</strong> <span id="duplicateCountDetail">0</span>
+                </div>
+                <div class="col-md-3">
+                    <strong>去重后账号个数:</strong> <span id="dedupCount">0</span>
+                </div>
+                <div class="col-md-3">
+                    <strong>重复账号:</strong>
+                </div>
+            </div>
+            <div class="duplicate-list">
+                <ul id="duplicateList"></ul>
+            </div>
+        </div>
+        
+        <div class="text-center mb-4" id="downloadSection" style="display: none;">
+            <button class="btn btn-primary" id="downloadDeduplicatedBtn"><i class="fas fa-download me-2"></i>下载去重后的文件</button>
+        </div>
+        
+        <div class="password-update-section">
+            <h3 class="mb-3"><i class="fas fa-key me-2"></i>账号密码批量修改工具</h3>
+            <div class="alert alert-light border">
+                <small class="text-muted">功能说明：上传一个“源账号文件”和多个“修改后的文件”。程序会用修改文件中的密码更新源文件，若源文件无此账号则新增。</small>
+            </div>
+            
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">第一步：上传源账号文件 (被修改的文件)</label>
+                    <input class="form-control" type="file" id="sourceUpdateFile" accept=".txt">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">第二步：上传修改密码文件 (支持多选)</label>
+                    <input class="form-control" type="file" id="newPasswordFiles" accept=".txt" multiple>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2 mt-4">
+                <button class="btn btn-success" id="startUpdateBtn">
+                    <i class="fas fa-sync-alt me-2"></i>开始处理并生成新文件
+                </button>
+            </div>
+
+            <div id="updateResultArea" style="display: none;">
+                <div class="update-log-container" id="updateLog"></div>
+                <div class="text-center mt-3">
+                    <button class="btn btn-primary" id="downloadUpdatedBtn">
+                        <i class="fas fa-download me-2"></i>下载修改完成的文件
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="search-section">
+            <h3 class="mb-3"><i class="fas fa-search me-2"></i>查找账号</h3>
+            
+            <ul class="nav nav-tabs mb-3" id="searchTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="by-position-tab" data-bs-toggle="tab" data-bs-target="#by-position" type="button" role="tab">按位置批量查找</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="by-account-tab" data-bs-toggle="tab" data-bs-target="#by-account" type="button" role="tab">按账号反查信息</button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="searchTabContent">
+                <div class="tab-pane fade show active" id="by-position" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-5 mb-3">
+                            <label for="groupNumber" class="form-label">账号组号</label>
+                            <input type="number" class="form-control" id="groupNumber" min="1" placeholder="输入组号">
+                        </div>
+                        <div class="col-md-5 mb-3">
+                            <label for="accountIndices" class="form-label">组内序号 (支持批量，空格或逗号分隔)</label>
+                            <input type="text" class="form-control" id="accountIndices" placeholder="如: 1 或 1,3,5 或 1 3 5">
+                        </div>
+                        <div class="col-md-2 mb-3 d-flex align-items-end">
+                            <button class="btn btn-primary w-100" id="searchBtn">查找</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="by-account" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-10 mb-3">
+                            <label for="searchUsernameInput" class="form-label">输入账号</label>
+                            <input type="text" class="form-control" id="searchUsernameInput" placeholder="输入完整账号">
+                        </div>
+                        <div class="col-md-2 mb-3 d-flex align-items-end">
+                            <button class="btn btn-primary w-100" id="reverseSearchBtn">反查</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="searchResult" class="mt-3" style="display: none;">
+                <div class="alert alert-info">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>查找结果</h5>
+                        <button class="btn btn-sm btn-outline-primary" id="copyResultBtn">
+                            <i class="fas fa-copy me-1"></i>复制查询结果
+                        </button>
+                    </div>
+                    <textarea class="form-control" id="searchResultText" rows="4" readonly style="background-color: #fff9c4; font-weight: bold; color: var(--dark-color);"></textarea>
+                </div>
+            </div>
+        </div>
+        
+        <div class="result-section" id="resultSection">
+            <h3 class="mb-4"><i class="fas fa-list-alt me-2"></i>账号分组</h3>
+            <div id="accountGroups"></div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>嘉立创自动签到账号管理工具</p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 原有变量
+            const fileInput = document.getElementById('fileInput');
+            const fileUploadLabel = document.querySelector('.file-upload-label');
+            const resultSection = document.getElementById('resultSection');
+            const accountGroups = document.getElementById('accountGroups');
+            const searchBtn = document.getElementById('searchBtn'); 
+            const reverseSearchBtn = document.getElementById('reverseSearchBtn'); 
+            const searchResult = document.getElementById('searchResult');
+            const searchResultText = document.getElementById('searchResultText');
+            const copyResultBtn = document.getElementById('copyResultBtn');
+            const statsSection = document.getElementById('statsSection');
+            const downloadSection = document.getElementById('downloadSection');
+            const downloadDeduplicatedBtn = document.getElementById('downloadDeduplicatedBtn');
+            const errorMessage = document.getElementById('errorMessage');
+            const duplicateDetails = document.getElementById('duplicateDetails');
+            const originalCountElem = document.getElementById('originalCount');
+            const duplicateCountDetailElem = document.getElementById('duplicateCountDetail');
+            const dedupCountElem = document.getElementById('dedupCount');
+            const duplicateListElem = document.getElementById('duplicateList');
+            
+            // 新增密码修改功能相关变量
+            const sourceUpdateFile = document.getElementById('sourceUpdateFile');
+            const newPasswordFiles = document.getElementById('newPasswordFiles');
+            const startUpdateBtn = document.getElementById('startUpdateBtn');
+            const updateLog = document.getElementById('updateLog');
+            const updateResultArea = document.getElementById('updateResultArea');
+            const downloadUpdatedBtn = document.getElementById('downloadUpdatedBtn');
+            
+            let accounts = [];
+            let groupedAccounts = [];
+            let deduplicatedContent = ''; 
+            let originalFileName = '';
+            let originalAccountCount = 0;
+            let duplicateAccounts = [];
+            let processing = false; 
+
+            // 密码修改功能的全局变量
+            let finalUpdatedContent = '';
+            let finalUpdatedFileName = 'updated_accounts.txt';
+            
+            // 重置状态函数
+            function resetState() {
+                accounts = [];
+                groupedAccounts = [];
+                deduplicatedContent = '';
+                originalFileName = '';
+                originalAccountCount = 0;
+                duplicateAccounts = [];
+                accountGroups.innerHTML = '';
+                resultSection.style.display = 'none';
+                statsSection.style.display = 'none';
+                downloadSection.style.display = 'none';
+                searchResult.style.display = 'none';
+                errorMessage.style.display = 'none';
+                errorMessage.textContent = '';
+                duplicateDetails.style.display = 'none';
+                fileUploadLabel.innerHTML = `<i class="fas fa-cloud-upload-alt"></i><h4>点击或拖拽文件到这里</h4><p class="text-muted">仅支持 .txt 格式文件</p>`;
+                processing = false;
+            }
+            
+            // ================== 原有文件上传与分组处理逻辑 ==================
+            
+            fileInput.addEventListener('change', function(e) {
+                if (processing) return; 
+                processing = true;
+                resetState();
+                const file = e.target.files[0];
+                if (file) {
+                    if (file.type !== 'text/plain' && !file.name.endsWith('.txt')) {
+                        showError('请上传文本文件(.txt)');
+                        processing = false;
+                        return;
+                    }
+                    originalFileName = file.name.replace('.txt', '') + '_去重.txt';
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            processFileContent(e.target.result);
+                            processing = false;
+                        } catch (err) {
+                            showError('文件处理错误: ' + err.message);
+                            processing = false;
+                        }
+                    };
+                    reader.onerror = function() {
+                        showError('读取文件失败');
+                        processing = false;
+                    };
+                    reader.readAsText(file);
+                    fileUploadLabel.innerHTML = `<i class="fas fa-check-circle"></i><h4>${file.name}</h4><p class="text-muted">文件已成功加载</p>`;
+                } else {
+                    processing = false;
+                }
+            });
+            
+            fileUploadLabel.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                fileUploadLabel.style.borderColor = '#4361ee';
+                fileUploadLabel.style.backgroundColor = 'rgba(67, 97, 238, 0.1)';
+            });
+            
+            fileUploadLabel.addEventListener('dragleave', function() {
+                fileUploadLabel.style.borderColor = '#dee2e6';
+                fileUploadLabel.style.backgroundColor = '';
+            });
+            
+            fileUploadLabel.addEventListener('drop', function(e) {
+                e.preventDefault();
+                fileUploadLabel.style.borderColor = '#dee2e6';
+                fileUploadLabel.style.backgroundColor = '';
+                
+                if (processing) return;
+                processing = true;
+                resetState();
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    const file = files[0];
+                    if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+                        originalFileName = file.name.replace('.txt', '') + '_去重.txt';
+                        fileInput.files = files;
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            try {
+                                processFileContent(e.target.result);
+                                processing = false;
+                            } catch (err) {
+                                showError('文件处理错误: ' + err.message);
+                                processing = false;
+                            }
+                        };
+                        reader.onerror = function() {
+                            showError('读取文件失败');
+                            processing = false;
+                        };
+                        reader.readAsText(file);
+                        fileUploadLabel.innerHTML = `<i class="fas fa-check-circle"></i><h4>${file.name}</h4><p class="text-muted">文件已成功加载</p>`;
+                    } else {
+                        showError('请上传文本文件(.txt)');
+                        processing = false;
+                    }
+                } else {
+                    processing = false;
+                }
+            });
+            
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
+            }
+            
+            function processFileContent(content) {
+                const lines = content.split('\n');
+                const seen = new Set();
+                accounts = [];
+                deduplicatedContent = '';
+                let duplicateCount = 0;
+                originalAccountCount = 0;
+                duplicateAccounts = [];
+                
+                let i = 0;
+                while (i < lines.length) {
+                    let line = lines[i];
+                    let trimmed = line.trim();
+                    
+                    let accountMatch = trimmed.match(/^([^#\s]+):(.+)$/);
+                    if (accountMatch && !trimmed.startsWith('#')) {
+                        let contentBeforeComment = trimmed.split('#')[0].trim();
+                        let parts = contentBeforeComment.split(':');
+                        if (parts.length >= 2) {
+                            let username = parts[0].trim();
+                            let password = parts.slice(1).join(':').trim();
+                            let key = username; // 只根据用户名去重
+                            originalAccountCount++; 
+                            
+                            if (seen.has(key)) {
+                                duplicateCount++;
+                                if (!duplicateAccounts.includes(username)) {
+                                    duplicateAccounts.push(username);
+                                }
+                                i++;
+                                if (i < lines.length) {
+                                    let nextTrimmed = lines[i].trim();
+                                    if (nextTrimmed.startsWith('# 昵称') || nextTrimmed.startsWith('# Nickname')) {
+                                        i++;
+                                    }
+                                }
+                                continue;
+                            } else {
+                                seen.add(key);
+                                accounts.push({ username, password });
+                                deduplicatedContent += line + '\n';
+                                i++;
+                                if (i < lines.length) {
+                                    let nextTrimmed = lines[i].trim();
+                                    if (nextTrimmed.startsWith('# 昵称') || nextTrimmed.startsWith('# Nickname')) {
+                                        deduplicatedContent += lines[i] + '\n';
+                                        i++;
+                                    }
+                                }
+                                continue;
+                            }
+                        }
+                    }
+                    
+                    deduplicatedContent += line + '\n';
+                    i++;
+                }
+                
+                if (accounts.length === 0) {
+                    showError('文件解析失败：未找到有效的账号:密码对。确保格式为 username:password，且文件不为空。');
+                    return;
+                }
+                
+                if (duplicateCount > 0) {
+                    originalCountElem.textContent = originalAccountCount;
+                    duplicateCountDetailElem.textContent = duplicateCount;
+                    dedupCountElem.textContent = accounts.length;
+                    duplicateListElem.innerHTML = duplicateAccounts.map(acc => `<li>${acc}</li>`).join('');
+                    duplicateDetails.style.display = 'block';
+                    downloadSection.style.display = 'block';
+                } else {
+                    duplicateDetails.style.display = 'none';
+                    downloadSection.style.display = 'none';
+                }
+                
+                groupAccounts();
+                showStats();
+                displayGroups();
+                resultSection.style.display = 'block';
+                statsSection.style.display = 'flex';
+            }
+            
+            downloadDeduplicatedBtn.addEventListener('click', function() {
+                const blob = new Blob([deduplicatedContent], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = originalFileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+            
+            function groupAccounts() {
+                groupedAccounts = [];
+                const groupSize = 50;
+                for (let i = 0; i < accounts.length; i += groupSize) {
+                    const group = accounts.slice(i, i + groupSize);
+                    groupedAccounts.push(group);
+                }
+            }
+            
+            function showStats() {
+                document.getElementById('totalAccounts').textContent = accounts.length;
+                document.getElementById('totalGroups').textContent = groupedAccounts.length;
+                document.getElementById('lastGroupCount').textContent = 
+                    groupedAccounts.length > 0 ? groupedAccounts[groupedAccounts.length - 1].length : 0;
+            }
+            
+            function displayGroups() {
+                accountGroups.innerHTML = '';
+                groupedAccounts.forEach((group, index) => {
+                    const groupDiv = document.createElement('div');
+                    groupDiv.className = 'account-group';
+                    const usernames = group.map(acc => acc.username).join(',');
+                    const passwords = group.map(acc => acc.password).join(',');
+                    
+                    groupDiv.innerHTML = `
+                        <div class="card account-card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span>账号组 ${index + 1} (${group.length}个账号)</span>
+                                <button class="btn btn-sm btn-outline-light copy-group-btn" data-group="${index}">
+                                    <i class="fas fa-copy me-1"></i>复制本组
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">账号 ${index + 1}:</label>
+                                    <textarea class="form-control usernames-text" rows="3" readonly>${usernames}</textarea>
+                                    <button class="btn btn-sm btn-outline-primary copy-btn mt-2" data-text="${usernames}">
+                                        <i class="fas fa-copy me-1"></i>复制账号
+                                    </button>
+                                </div>
+                                <div>
+                                    <label class="form-label fw-bold">密码 ${index + 1}:</label>
+                                    <textarea class="form-control passwords-text" rows="3" readonly>${passwords}</textarea>
+                                    <button class="btn btn-sm btn-outline-primary copy-btn mt-2" data-text="${passwords}">
+                                        <i class="fas fa-copy me-1"></i>复制密码
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    accountGroups.appendChild(groupDiv);
+                });
+                
+                document.querySelectorAll('.copy-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const text = this.getAttribute('data-text');
+                        copyToClipboard(text);
+                        showCopyFeedback(this);
+                    });
+                });
+                
+                document.querySelectorAll('.copy-group-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const groupIndex = parseInt(this.getAttribute('data-group'));
+                        const group = groupedAccounts[groupIndex];
+                        const usernames = group.map(acc => acc.username).join(',');
+                        const passwords = group.map(acc => acc.password).join(',');
+                        const text = `账号${groupIndex+1}: ${usernames}\n密码${groupIndex+1}: ${passwords}`;
+                        copyToClipboard(text);
+                        showCopyFeedback(this);
+                    });
+                });
+            }
+            
+            function copyToClipboard(text) {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+            }
+            
+            function showCopyFeedback(button) {
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check me-1"></i>已复制';
+                button.classList.remove('btn-outline-primary', 'btn-outline-light');
+                button.classList.add('btn-success');
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.classList.remove('btn-success');
+                    if (button.classList.contains('copy-group-btn')) {
+                        button.classList.add('btn-outline-light');
+                    } else {
+                        button.classList.add('btn-outline-primary');
+                    }
+                }, 1500);
+            }
+            
+            // ================== 新增：账号密码批量修改逻辑 ==================
+
+            startUpdateBtn.addEventListener('click', async function() {
+                const sourceFile = sourceUpdateFile.files[0];
+                const updateFiles = newPasswordFiles.files;
+
+                if (!sourceFile) {
+                    alert('请上传源账号文件！');
+                    return;
+                }
+                if (updateFiles.length === 0) {
+                    alert('请至少上传一个修改密码文件！');
+                    return;
+                }
+
+                updateLog.innerHTML = '<div class="log-info">正在初始化...</div>';
+                updateResultArea.style.display = 'block';
+                finalUpdatedFileName = '已修改_' + sourceFile.name;
+
+                try {
+                    // 1. 读取并解析所有修改文件
+                    updateLog.innerHTML += `<div class="log-info">正在读取 ${updateFiles.length} 个修改文件...</div>`;
+                    const updatesMap = new Map(); // username -> { password, nicknameLine }
+
+                    for (let file of updateFiles) {
+                        const content = await readFileAsText(file);
+                        const lines = content.split('\n');
+                        let i = 0;
+                        while (i < lines.length) {
+                            let line = lines[i].trim();
+                            // 匹配账号行
+                            let match = line.match(/^([^#\s]+):(.+)$/);
+                            if (match && !line.startsWith('#')) {
+                                const username = match[1].trim();
+                                const password = match[2].trim();
+                                let nicknameLine = "";
+                                
+                                // 检查下一行是否有昵称
+                                if (i + 1 < lines.length) {
+                                    let nextLine = lines[i+1].trim();
+                                    if (nextLine.startsWith('# 昵称') || nextLine.startsWith('# Nickname')) {
+                                        nicknameLine = lines[i+1]; // 保留原行（含缩进等）
+                                        i++; // 跳过昵称行
+                                    }
+                                }
+                                
+                                updatesMap.set(username, { password, nicknameLine });
+                            }
+                            i++;
+                        }
+                    }
+                    updateLog.innerHTML += `<div class="log-info">共加载了 ${updatesMap.size} 个待更新账号信息。</div>`;
+                    updateLog.innerHTML += `<hr style="border-color: #555;">`;
+
+                    // 2. 读取源文件并进行流式替换
+                    const sourceContent = await readFileAsText(sourceFile);
+                    const sourceLines = sourceContent.split('\n');
+                    let outputContent = "";
+                    let processedCount = 0;
+                    let changeCount = 0;
+                    let noChangeCount = 0;
+                    let processedUsernames = new Set();
+
+                    let i = 0;
+                    while (i < sourceLines.length) {
+                        let line = sourceLines[i]; // 保留原始行（包含换行符之前的格式）
+                        let trimmed = line.trim();
+                        let match = trimmed.match(/^([^#\s]+):(.+)$/);
+
+                        if (match && !trimmed.startsWith('#')) {
+                            const username = match[1].trim();
+                            const currentPassword = match[2].trim();
+                            
+                            if (updatesMap.has(username)) {
+                                const updateData = updatesMap.get(username);
+                                processedUsernames.add(username);
+                                
+                                if (updateData.password !== currentPassword) {
+                                    // 密码需要更新
+                                    outputContent += `${username}:${updateData.password}\n`;
+                                    updateLog.innerHTML += `<div class="log-success">[修改] 账号 ${username} 密码已更新</div>`;
+                                    changeCount++;
+                                } else {
+                                    // 密码相同，无需更新
+                                    outputContent += line + "\n";
+                                    updateLog.innerHTML += `<div class="log-warn">[未变] 账号 ${username} 密码一致，跳过</div>`;
+                                    noChangeCount++;
+                                }
+                                
+                                // 处理源文件紧接的昵称行（如果有）
+                                // 逻辑：如果源文件有昵称，直接保留源文件的昵称（忽略更新文件的掩码昵称）
+                                // 如果源文件没昵称，不需要补，因为我们尽量不动源文件结构
+                                i++; // 移动到下一行检查昵称
+                                if (i < sourceLines.length) {
+                                    let nextLine = sourceLines[i];
+                                    let nextTrimmed = nextLine.trim();
+                                    if (nextTrimmed.startsWith('# 昵称') || nextTrimmed.startsWith('# Nickname')) {
+                                        outputContent += nextLine + "\n"; // 保留源昵称
+                                    } else {
+                                        // 如果这行不是昵称，说明源文件这个账号没昵称，或者格式紧凑
+                                        // 我们需要把指针退回，因为while循环末尾会i++，或者直接处理这行
+                                        // 简单起见，如果这行不是昵称，我们应该把它当做普通行处理，追加到output
+                                        // 但因为 while 循环会 i++，我们这里不能直接追加，需回退索引让大循环处理
+                                        i--; 
+                                    }
+                                } else {
+                                    i--; // 防止溢出
+                                }
+                            } else {
+                                // 源文件有，更新表里没有 -> 保留原样
+                                outputContent += line + "\n";
+                                // 同样要处理可能存在的昵称行，保证原样输出
+                                i++;
+                                if (i < sourceLines.length) {
+                                    let nextLine = sourceLines[i];
+                                    let nextTrimmed = nextLine.trim();
+                                    if (nextTrimmed.startsWith('# 昵称') || nextTrimmed.startsWith('# Nickname')) {
+                                        outputContent += nextLine + "\n";
+                                    } else {
+                                        i--;
+                                    }
+                                } else {
+                                    i--;
+                                }
+                            }
+                        } else {
+                            // 普通行（注释、空行等），直接保留
+                            outputContent += line + "\n";
+                        }
+                        i++;
+                    }
+
+                    // 3. 处理新增账号 (在updatesMap中存在，但源文件中没处理过的)
+                    let addCount = 0;
+                    updatesMap.forEach((data, username) => {
+                        if (!processedUsernames.has(username)) {
+                            // 这是一个新账号
+                            // 确保文件末尾有换行
+                            if (!outputContent.endsWith('\n') && !outputContent.endsWith('\r')) {
+                                outputContent += '\n';
+                            }
+                            // 如果末尾没有空行，加一个空行好看点（可选）
+                            if (!outputContent.endsWith('\n\n')) {
+                                outputContent += '\n';
+                            }
+
+                            outputContent += `${username}:${data.password}\n`;
+                            if (data.nicknameLine) {
+                                outputContent += `${data.nicknameLine}\n`;
+                            } else {
+                                // 如果更新文件里也没昵称，可以给个默认注释或者留空
+                            }
+                            updateLog.innerHTML += `<div class="log-add">[新增] 账号 ${username} 已添加到文件末尾</div>`;
+                            addCount++;
+                        }
+                    });
+
+                    // 4. 总结
+                    finalUpdatedContent = outputContent;
+                    updateLog.innerHTML += `<hr style="border-color: #555;">`;
+                    updateLog.innerHTML += `<div class="log-info" style="font-weight:bold;">处理完成！汇总：修改 ${changeCount} 个，新增 ${addCount} 个，未变 ${noChangeCount} 个。</div>`;
+                    
+                    // 滚动到底部
+                    updateLog.scrollTop = updateLog.scrollHeight;
+
+                } catch (err) {
+                    alert('处理出错：' + err.message);
+                    console.error(err);
+                }
+            });
+
+            // 辅助函数：读取文件内容
+            function readFileAsText(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = (e) => reject(new Error("读取文件失败"));
+                    reader.readAsText(file);
+                });
+            }
+
+            // 下载更新后的文件
+            downloadUpdatedBtn.addEventListener('click', function() {
+                if (!finalUpdatedContent) {
+                    alert('暂无内容可下载');
+                    return;
+                }
+                const blob = new Blob([finalUpdatedContent], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = finalUpdatedFileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+
+            // ================== 原有搜索功能 ==================
+
+            searchBtn.addEventListener('click', function() {
+                if (groupedAccounts.length === 0) {
+                    alert('请先上传文件进行分组');
+                    return;
+                }
+
+                const groupNum = parseInt(document.getElementById('groupNumber').value);
+                const indicesInput = document.getElementById('accountIndices').value.trim();
+                
+                if (!groupNum) {
+                    alert('请输入组号');
+                    return;
+                }
+                
+                if (!indicesInput) {
+                    alert('请输入序号');
+                    return;
+                }
+
+                if (groupNum < 1 || groupNum > groupedAccounts.length) {
+                    alert('组号超出范围');
+                    return;
+                }
+
+                const group = groupedAccounts[groupNum - 1];
+                const indices = indicesInput.split(/[,，\s]+/).map(s => parseInt(s)).filter(n => !isNaN(n));
+
+                if (indices.length === 0) {
+                    alert('未检测到有效的序号');
+                    return;
+                }
+
+                let resultText = "";
+                let foundCount = 0;
+
+                indices.forEach(idx => {
+                    if (idx < 1 || idx > group.length) {
+                        resultText += `序号 ${idx}: 超出范围 (本组共 ${group.length} 个账号)\n`;
+                    } else {
+                        const account = group[idx - 1];
+                        resultText += `${account.username}:${account.password}\n`;
+                        foundCount++;
+                    }
+                });
+                
+                searchResultText.value = resultText.trim();
+                searchResult.style.display = 'block';
+                searchResult.scrollIntoView({ behavior: 'smooth' });
+            });
+
+            reverseSearchBtn.addEventListener('click', function() {
+                if (groupedAccounts.length === 0) {
+                    alert('请先上传文件进行分组');
+                    return;
+                }
+
+                const searchUser = document.getElementById('searchUsernameInput').value.trim();
+                if (!searchUser) {
+                    alert('请输入要查找的账号');
+                    return;
+                }
+
+                let found = false;
+                let resultText = "";
+
+                for (let gIndex = 0; gIndex < groupedAccounts.length; gIndex++) {
+                    const group = groupedAccounts[gIndex];
+                    for (let aIndex = 0; aIndex < group.length; aIndex++) {
+                        if (group[aIndex].username === searchUser) {
+                            resultText = `账号: ${group[aIndex].username}\n密码: ${group[aIndex].password}\n位置: 第 ${gIndex + 1} 组, 第 ${aIndex + 1} 个`;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found) break;
+                }
+
+                if (found) {
+                    searchResultText.value = resultText;
+                    searchResult.style.display = 'block';
+                } else {
+                    searchResultText.value = "未找到该账号";
+                    searchResult.style.display = 'block';
+                }
+                
+                searchResult.scrollIntoView({ behavior: 'smooth' });
+            });
+
+            copyResultBtn.addEventListener('click', function() {
+                const text = searchResultText.value;
+                if (!text) return;
+                
+                copyToClipboard(text);
+                showCopyFeedback(this);
+            });
+        });
+    </script>
+</body>
+</html>
