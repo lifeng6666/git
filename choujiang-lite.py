@@ -10,7 +10,6 @@ import threading
 import queue
 import re
 import shutil
-import psutil
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -30,10 +29,6 @@ except ImportError:
 in_summary = False
 summary_logs = []
 
-class ProxyConnectionError(Exception):
-    """代理失效或网络连接异常时抛出，用于触发重连环境"""
-    pass
-
 def log(msg, show_time=True):
     if show_time:
         full_msg = f"[{datetime.now().strftime('%H:%M:%S')}] {msg}"
@@ -43,164 +38,9 @@ def log(msg, show_time=True):
     if in_summary:
         summary_logs.append(msg)
 
-def cleanup_zombie_chrome():
-    """清理超时残留的 Chrome 及相关进程"""
-    current_time = time.time()
-    for proc in psutil.process_iter(['pid', 'name', 'cmdline', 'create_time']):
-        try:
-            name = proc.info.get('name')
-            if name and ('chrome' in name.lower() or 'chromedriver' in name.lower()):
-                cmdline = proc.info.get('cmdline')
-                if cmdline:
-                    cmd_str = ' '.join(cmdline)
-                    # 只清理 headless 下或本程序产生残留的超时进程，设置 30 分钟防误杀
-                    if '--headless' in cmd_str or 'user-data-dir' in cmd_str:
-                        create_time = proc.info.get('create_time', current_time)
-                        if current_time - create_time > 1800:
-                            proc.kill()
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            continue
-
-def get_valid_proxy(timeout=None):
-    """从代理池 API 获取代理并进行连通性测试"""
-    api_url = "http://api.dmdaili.com/dmgetip.asp?apikey=bc134002&pwd=9299a288f7e75c2ba0da1886b5224433&getnum=1&httptype=1&geshi=2&fenge=1&fengefu=&operate=all"
-    start_time = time.time()
-    
-    while True:
-        if timeout and (time.time() - start_time) > timeout:
-            log(f"❌ 代理API: 获取或测试代理已达到设定的超时时间 ({timeout}秒)")
-            return None
-            
-        try:
-            resp = requests.get(api_url, timeout=10)
-            data = resp.json()
-            
-            if data.get("code") == 605:
-                log(f"⚠ 代理API: 白名单未生效或需等待 ({data.get('msg')})，等待15秒...")
-                time.sleep(15)
-                continue
-            elif data.get("code") == 1 and "Too Many Requests" in data.get("msg", ""):
-                time.sleep(5)
-                continue
-            elif data.get("code") == 0 and data.get("data"):
-                p_info = data["data"][0]
-                ip, port, city = p_info.get("ip"), p_info.get("port"), p_info.get("city", "未知")
-                proxy_str = f"{ip}:{port}" 
-                log(f"🔗 获取到代理: {proxy_str} [位置: {city}]，正在测试...")
-                
-                try:
-                    test_resp = requests.get("https://passport.jlc.com", proxies={"http": f"http://{proxy_str}", "https": f"http://{proxy_str}"}, timeout=5)
-                    if test_resp.status_code == 200:
-                        log("✅ 代理测试成功，延迟正常")
-                        return proxy_str
-                    else:
-                        log(f"⚠ 代理测试失败，返回状态码: {test_resp.status_code}，重新获取...")
-                        continue
-                except requests.exceptions.ConnectTimeout:
-                    log("⚠ 代理测试连接超时，重新获取...")
-                    continue
-                except requests.exceptions.ReadTimeout:
-                    log("⚠ 代理测试读取超时，重新获取...")
-                    continue
-                except requests.exceptions.ProxyError as e:
-                    log(f"⚠ 代理拒绝连接或代理错误 ({e})，重新获取...")
-                    continue
-                except requests.exceptions.ConnectionError as e:
-                    log(f"⚠ 代理连接失败 ({e})，重新获取...")
-                    continue
-                except Exception as e:
-                    log(f"⚠ 代理测试未知错误 ({type(e).__name__}: {e})，重新获取...")
-                    continue
-            else:
-                log(f"❌ 代理API返回异常内容: {data}")
-                time.sleep(3)
-        except Exception as e:
-            time.sleep(3)
-
-def force_kill_driver(driver):
-    """彻底强杀 Chrome 以释放系统资源"""
-    if not driver:
-        return
-    try:
-        driver_pid = driver.service.process.pid
-        try:
-            parent = psutil.Process(driver_pid)
-            for child in parent.children(recursive=True):
-                try: child.kill()
-                except: pass
-            try: parent.kill()
-            except: pass
-        except: pass
-    except Exception: pass
-    finally:
-        try: driver.quit()
-        except: pass
-
-class DriverWrapper:
-    """包装 Driver 与 Cookie，用于在代理失效时重建会话断点续连"""
-    def __init__(self, user_data_dir):
-        self.user_data_dir = user_data_dir
-        self.driver = None
-        self.saved_cookies = []
-    
-    def set_driver(self, driver):
-        self.driver = driver
-    
-    def get_driver(self):
-        return self.driver
-        
-    def save_cookies(self):
-        """分别访问 passport 和 m 站，抓取所有域下的完整 Cookie"""
-        if self.driver:
-            self.saved_cookies = []
-            domains_to_fetch = ["https://passport.jlc.com/favicon.ico", "https://m.jlc.com/favicon.ico"]
-            for d in domains_to_fetch:
-                try:
-                    self.driver.get(d)
-                    time.sleep(0.5)
-                    cookies = self.driver.get_cookies()
-                    for c in cookies:
-                        # 防止重复保存同名同域的 cookie
-                        if not any(sc['name'] == c['name'] and sc['domain'] == c['domain'] for sc in self.saved_cookies):
-                            self.saved_cookies.append(c)
-                except: pass
-                
-    def reconnect_proxy(self):
-        """换新代理并恢复跨域的 Cookies"""
-        self.save_cookies()
-        if self.driver:
-            try:
-                # 优雅退出，确保缓存/LocalStorage/Cookie能够写回到 user_data_dir 中
-                self.driver.quit()
-            except: pass
-            force_kill_driver(self.driver)
-            self.driver = None
-            
-        proxy_str = get_valid_proxy(timeout=300)
-        if not proxy_str:
-            raise Exception("获取有效代理超时")
-            
-        self.driver = create_chrome_driver(self.user_data_dir, proxy_str)
-        self.driver.set_page_load_timeout(40)
-        self.driver.set_script_timeout(40)
-        
-        valid_keys = ['name', 'value', 'domain', 'path', 'secure', 'httpOnly', 'expiry', 'sameSite']
-        
-        # 恢复 cookie，预热 M站 和 Passport 站并分别注入以规避 webdriver 跨域限制
-        domains_to_inject = ["https://passport.jlc.com/favicon.ico", "https://m.jlc.com/favicon.ico"]
-        for d in domains_to_inject:
-            try:
-                self.driver.get(d)
-                for c in self.saved_cookies:
-                    clean_c = {k: v for k, v in c.items() if k in valid_keys}
-                    try: self.driver.add_cookie(clean_c)
-                    except: pass
-            except: pass
-
-
 # ======================== 浏览器与登录验证核心逻辑 ========================
 
-def create_chrome_driver(user_data_dir=None, proxy_str=None):
+def create_chrome_driver(user_data_dir=None):
     """创建 Chrome 浏览器实例（启用性能日志以抓取 header）"""
     chrome_options = Options()
     chrome_options.add_argument("--headless=new")
@@ -218,9 +58,6 @@ def create_chrome_driver(user_data_dir=None, proxy_str=None):
     chrome_options.add_argument("--disable-extensions")
     chrome_options.add_argument("--window-size=1920,1080")
     chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
-
-    if proxy_str:
-        chrome_options.add_argument(f"--proxy-server=http://{proxy_str}")
 
     if user_data_dir:
         chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
@@ -429,7 +266,7 @@ def extract_custom_headers_from_logs(driver, header_keys):
     return found_headers
 
 def send_api_request(driver, url, method="POST", body_dict=None, extra_headers=None):
-    """通用的 JS Fetch 发包方法，加入超时保护返回 _fetch_error 以供网络重连使用"""
+    """通用的 JS Fetch 发包方法"""
     if extra_headers is None:
         extra_headers = {}
         
@@ -476,28 +313,10 @@ def send_api_request(driver, url, method="POST", body_dict=None, extra_headers=N
         fetchOpts.body = bodyData;
     }
 
-    var isDone = false;
-    var timer = setTimeout(function() {
-        if (!isDone) {
-            isDone = true;
-            callback(JSON.stringify({_fetch_error: "JS内部fetch超时 (15s)"}));
-        }
-    }, 15000);
-
     fetch(url, fetchOpts)
-    .then(async r => {
-        const text = await r.text();
-        if (isDone) return;
-        isDone = true;
-        clearTimeout(timer);
-        callback(text);
-    })
-    .catch(e => {
-        if (isDone) return;
-        isDone = true;
-        clearTimeout(timer);
-        callback(JSON.stringify({_fetch_error: e.toString()}));
-    });
+    .then(r => r.text())
+    .then(d => callback(d))
+    .catch(e => callback(JSON.stringify({_fetch_error: e.toString()})));
     """
     
     try:
@@ -508,10 +327,9 @@ def send_api_request(driver, url, method="POST", body_dict=None, extra_headers=N
             except json.JSONDecodeError:
                 return {"_raw": result}
         return None
-    except TimeoutException as e:
-        return {"_fetch_error": f"JS执行超时: {e}"}
     except Exception as e:
-        return {"_fetch_error": f"底层执行异常: {e}"}
+        log(f"❌ 请求执行失败: {e}")
+        return None
 
 def api_with_retry(driver, url, method, payload, headers, max_retries=3):
     for i in range(max_retries):
@@ -520,13 +338,6 @@ def api_with_retry(driver, url, method, payload, headers, max_retries=3):
             return res
         if i < max_retries - 1:
             time.sleep(1.5)
-            
-    if isinstance(res, dict) and "_fetch_error" in res:
-        raise ProxyConnectionError(res["_fetch_error"])
-    elif isinstance(res, dict) and "_raw" in res:
-        raise ProxyConnectionError(f"返回非JSON响应，可能被代理页面拦截: {str(res)[:100]}")
-    elif res is None:
-        raise ProxyConnectionError("请求执行失败，返回为空，可能是浏览器崩溃或完全断连")
     return res
 
 # ======================== 嘉立创活动 API 接口 ========================
@@ -618,14 +429,13 @@ def api_query_wins(driver, headers):
 
 # ======================== 核心活动编排逻辑 ========================
 
-def perform_brand_activities(driver_wrapper, account_index, username):
-    """执行活动流程 (已包含自动从断点重接代理的机制)"""
+def perform_brand_activities(driver, account_index, username):
+    """执行活动流程"""
     result = {
         'customer_code': username,  # 客户编号就是输入的账号
-        'initial_jindou_fetched': False,
         'initial_jindou': 0,
         'final_jindou': 0,
-        'signup_status': '未执行',
+        'signup_status': '未报名',
         'exchange_count': 0,
         'exchange_max': 3,
         'lottery_results': [],
@@ -634,165 +444,129 @@ def perform_brand_activities(driver_wrapper, account_index, username):
         'error_msg': None
     }
     
-    max_proxy_retries = 10
-    proxy_retry = 0
-    
-    while proxy_retry < max_proxy_retries:
-        try:
-            if proxy_retry > 0:
-                log(f"账号 {account_index} - (代理重试: {proxy_retry}/{max_proxy_retries}) 恢复环境状态继续执行...")
+    try:
+        log(f"账号 {account_index} - 客户编号: {result['customer_code']}")
+
+        # 1. 访问活动页面收集凭证
+        activity_url = "https://m.jlc.com/pages/web-view/index?url=https%253A%252F%252Fm.jlc.com%252Fpages-promo%252Fbrand-campaign%252Findex%253F_embed%253D1%2526source%253Djlc_mobile_app%2526clientType%253DWEB&title=%E5%98%89%E7%AB%8B%E5%88%9B%E9%9B%86%E5%9B%A2&syncLogin="
+        log(f"账号 {account_index} - 正在打开活动页以同步环境凭证...")
+        driver.get("https://m.jlc.com/pages-promo/brand-campaign/index") # 预热
+        time.sleep(3)
+        driver.get('chrome://network-errors/#') # 清理网络日志
+        driver.get_log('performance') 
+        
+        try: driver.get(activity_url)
+        except TimeoutException: driver.execute_script("window.stop();")
+        
+        log(f"账号 {account_index} - 等待 8 秒让 SSO Token 生成...")
+        time.sleep(8)
+        
+        # 提取必须的鉴权头
+        headers = extract_custom_headers_from_logs(driver, ['secretkey', 'x-jlc-accesstoken', 'x-jlc-clienttype'])
+        if not headers.get('secretkey'):
+            raise Exception("未能从浏览器日志提取到 secretkey")
+        
+        # 2. 获取初始金豆
+        result['initial_jindou'] = api_get_beans(driver, headers)
+        log(f"账号 {account_index} - 当前金豆: {result['initial_jindou']}")
+
+        # 3. 处理报名
+        is_signed_up = api_check_signup(driver, headers)
+        if is_signed_up:
+            result['signup_status'] = '已报名'
+            log(f"账号 {account_index} - 状态: {result['signup_status']}")
+        else:
+            log(f"账号 {account_index} - 未报名，准备发包报名...")
+            if api_do_signup(driver, headers):
+                result['signup_status'] = '报名成功'
+                log(f"账号 {account_index} - ✅ 报名成功")
             else:
-                log(f"账号 {account_index} - 客户编号: {result['customer_code']}")
+                result['signup_status'] = '报名失败'
+                raise Exception("报名接口调用失败")
 
-            driver = driver_wrapper.get_driver()
-
-            # 1. 访问活动页面收集凭证
-            activity_url = "https://m.jlc.com/pages/web-view/index?url=https%253A%252F%252Fm.jlc.com%252Fpages-promo%252Fbrand-campaign%252Findex%253F_embed%253D1%2526source%253Djlc_mobile_app%2526clientType%253DWEB&title=%E5%98%89%E7%AB%8B%E5%88%9B%E9%9B%86%E5%9B%A2&syncLogin="
-            log(f"账号 {account_index} - 正在打开活动页以同步环境凭证...")
+        # 4. 智能循环: 抽奖 <-> 兑换
+        log(f"账号 {account_index} - 进入兑换次数和抽奖流程 ...")
+        
+        # 预先获取一次兑换状态
+        exc_status = api_get_exchange_status(driver, headers)
+        result['exchange_count'] = exc_status['exc_num']
+        result['exchange_max'] = exc_status['exc_max']
+        
+        loop_guard = 0
+        while loop_guard < 15: # 防死循环
+            loop_guard += 1
             
-            try:
-                driver.get("https://m.jlc.com/pages-promo/brand-campaign/index") # 预热
-                time.sleep(3)
-                driver.get('chrome://network-errors/#') # 清理网络日志
-                driver.get_log('performance') 
-                driver.get(activity_url)
-            except TimeoutException as te:
-                raise ProxyConnectionError(f"代理网络或页面加载超时: {te}")
-            except Exception as e:
-                raise ProxyConnectionError(f"代理网络底层异常: {e}")
+            # 第一步：查抽奖次数
+            draw_chances = api_get_draw_chances(driver, headers)
             
-            log(f"账号 {account_index} - 等待 8 秒让 SSO Token 生成...")
-            time.sleep(8)
-            
-            # 提取必须的鉴权头
-            headers = extract_custom_headers_from_logs(driver, ['secretkey', 'x-jlc-accesstoken', 'x-jlc-clienttype'])
-            if not headers.get('secretkey'):
-                raise ProxyConnectionError("未能从浏览器日志提取到 secretkey, 可能页面未正确加载完毕")
-            
-            # 2. 获取初始金豆
-            if not result['initial_jindou_fetched']:
-                result['initial_jindou'] = api_get_beans(driver, headers)
-                # 校验是否真因为没登入导致失败 401
-                if result['initial_jindou'] == 0:
-                    pass # api 异常打印会显示，且流程继续走如果需要
-                result['initial_jindou_fetched'] = True
-                log(f"账号 {account_index} - 当前金豆: {result['initial_jindou']}")
-
-            # 3. 处理报名
-            if result['signup_status'] in ['未执行', '未报名']:
-                is_signed_up = api_check_signup(driver, headers)
-                if is_signed_up:
-                    result['signup_status'] = '已报名'
-                    log(f"账号 {account_index} - 状态: {result['signup_status']}")
+            if draw_chances > 0:
+                # 优先把所有次数抽光
+                log(f"账号 {account_index} - 发现 {draw_chances} 次抽奖机会，开始抽奖...")
+                prize = api_do_draw(driver, headers)
+                if prize:
+                    log(f"账号 {account_index} - 🎉 抽奖获得: {prize}")
+                    result['lottery_results'].append(prize)
+                time.sleep(2)
+                continue # 抽奖后直接进行下一次循环（可能还有剩余次数）
+                
+            else:
+                # 次数为0，判断是否能兑换
+                exc_status = api_get_exchange_status(driver, headers)
+                result['exchange_count'] = exc_status['exc_num']
+                
+                if exc_status['exc_num'] >= exc_status['exc_max']:
+                    log(f"账号 {account_index} - 兑换次数已达上限 ({exc_status['exc_num']}/{exc_status['exc_max']})，结束流程。")
+                    break
+                
+                # 检查金豆是否够5个
+                current_beans = api_get_beans(driver, headers)
+                if current_beans < 5:
+                    log(f"账号 {account_index} - 剩余金豆不足 5 个 (当前 {current_beans})，无法继续兑换，结束流程。")
+                    break
+                    
+                # 发包兑换
+                log(f"账号 {account_index} - 花费 5 金豆兑换抽奖机会 (已兑换: {exc_status['exc_num']}/{exc_status['exc_max']})...")
+                if api_do_exchange(driver, headers):
+                    log(f"账号 {account_index} - ✅ 兑换成功！")
+                    result['exchange_count'] += 1
+                    time.sleep(1)
+                    continue # 兑换成功后，进入下一个循环即可触发上面的抽奖逻辑
                 else:
-                    log(f"账号 {account_index} - 未报名，准备发包报名...")
-                    if api_do_signup(driver, headers):
-                        result['signup_status'] = '报名成功'
-                        log(f"账号 {account_index} - ✅ 报名成功")
-                    else:
-                        result['signup_status'] = '报名失败'
-                        raise Exception("报名接口调用逻辑拒绝（可能是未登录导致 401 或活动已结束）")
+                    log(f"账号 {account_index} - ❌ 兑换失败，中断流程。")
+                    break
 
-            # 4. 智能循环: 抽奖 <-> 兑换
-            log(f"账号 {account_index} - 进入兑换次数和抽奖流程 ...")
-            
-            exc_status = api_get_exchange_status(driver, headers)
-            result['exchange_count'] = exc_status['exc_num']
-            result['exchange_max'] = exc_status['exc_max']
-            
-            loop_guard = 0
-            while loop_guard < 15: # 防死循环
-                loop_guard += 1
-                
-                # 第一步：查抽奖次数
-                draw_chances = api_get_draw_chances(driver, headers)
-                
-                if draw_chances > 0:
-                    # 优先把所有次数抽光
-                    log(f"账号 {account_index} - 发现 {draw_chances} 次抽奖机会，开始抽奖...")
-                    prize = api_do_draw(driver, headers)
-                    if prize:
-                        log(f"账号 {account_index} - 🎉 抽奖获得: {prize}")
-                        result['lottery_results'].append(prize)
-                    time.sleep(2)
-                    continue # 抽奖后直接进行下一次循环（可能还有剩余次数）
-                    
-                else:
-                    # 次数为0，判断是否能兑换
-                    exc_status = api_get_exchange_status(driver, headers)
-                    result['exchange_count'] = exc_status['exc_num']
-                    
-                    if exc_status['exc_num'] >= exc_status['exc_max']:
-                        log(f"账号 {account_index} - 兑换次数已达上限 ({exc_status['exc_num']}/{exc_status['exc_max']})，结束流程。")
-                        break
-                    
-                    # 检查金豆是否够5个
-                    current_beans = api_get_beans(driver, headers)
-                    if current_beans < 5:
-                        log(f"账号 {account_index} - 剩余金豆不足 5 个 (当前 {current_beans})，无法继续兑换，结束流程。")
-                        break
-                        
-                    # 发包兑换
-                    log(f"账号 {account_index} - 花费 5 金豆兑换抽奖机会 (已兑换: {exc_status['exc_num']}/{exc_status['exc_max']})...")
-                    if api_do_exchange(driver, headers):
-                        log(f"账号 {account_index} - ✅ 兑换成功！")
-                        result['exchange_count'] += 1
-                        time.sleep(1)
-                        continue # 兑换成功后，进入下一个循环即可触发上面的抽奖逻辑
-                    else:
-                        log(f"账号 {account_index} - ❌ 兑换失败，中断流程。")
-                        break
-
-            # 5. 获取所有中奖记录
-            log(f"账号 {account_index} - 正在查询所有中奖记录...")
-            query_wins = None
-            for attempt in range(3):
-                try:
-                    query_wins = api_query_wins(driver, headers)
-                    if query_wins is not None:
-                        break
-                except ProxyConnectionError as e:
-                    log(f"  [x] 查询中奖记录时遇到网络异常: {e}")
-                except Exception as e:
-                    log(f"  [x] 查询中奖记录时遇到未知异常: {e}")
-                    
-                if attempt < 2:
-                    log(f"账号 {account_index} - ❌ 查询中奖记录失败，刷新页面并重试 ({attempt+1}/3)...")
-                    try:
-                        driver.refresh()
-                        WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
-                    except Exception:
-                        pass
-                    time.sleep(5)
-                    
-            if query_wins is None:
-                # 3次失败后，抛出标准异常，这会打破 proxy 循环并触发 sign_in_account 的全流程重试
-                raise Exception("查询中奖记录失败3次，触发全流程重试")
-                
-            result['all_wins'] = query_wins
-            log(f"账号 {account_index} - 查询到 {len(query_wins)} 条中奖记录。")
-
-            # 6. 获取最终金豆
-            result['final_jindou'] = api_get_beans(driver, headers)
-            result['success'] = True
-            log(f"账号 {account_index} - ✅ 该账号处理完成")
-            break # 成功完成退出 proxy 循环
-
-        except ProxyConnectionError as e:
-            proxy_retry += 1
-            log(f"账号 {account_index} - ⚠ 代理失效或网络异常，准备重新获取代理重试 ({proxy_retry}/{max_proxy_retries}): {e}")
-            if proxy_retry >= max_proxy_retries:
-                result['success'] = False
-                result['error_msg'] = f"连续 {max_proxy_retries} 次代理失效重试均失败，放弃该账号"
+        # 5. 获取所有中奖记录
+        log(f"账号 {account_index} - 正在查询所有中奖记录...")
+        query_wins = None
+        for attempt in range(3):
+            query_wins = api_query_wins(driver, headers)
+            if query_wins is not None:
                 break
-            driver_wrapper.reconnect_proxy()
+            if attempt < 2:
+                log(f"账号 {account_index} - ❌ 查询中奖记录失败，刷新页面并重试 ({attempt+1}/3)...")
+                try:
+                    driver.refresh()
+                    WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+                except Exception:
+                    pass
+                time.sleep(5)
+                
+        if query_wins is None:
+            raise Exception("查询中奖记录失败3次，触发全流程重试")
             
-        except Exception as e:
-            log(f"账号 {account_index} - ❌ 活动处理业务异常: {e}")
-            result['success'] = False
-            result['error_msg'] = str(e)
-            break
-            
+        result['all_wins'] = query_wins
+        log(f"账号 {account_index} - 查询到 {len(query_wins)} 条中奖记录。")
+
+        # 6. 获取最终金豆
+        result['final_jindou'] = api_get_beans(driver, headers)
+        result['success'] = True
+        log(f"账号 {account_index} - ✅ 该账号处理完成")
+
+    except Exception as e:
+        log(f"账号 {account_index} - ❌ 活动处理异常: {e}")
+        result['success'] = False
+        result['error_msg'] = str(e)
+        
     return result
 
 def sign_in_account(username, password, account_index, total_accounts):
@@ -816,15 +590,14 @@ def sign_in_account(username, password, account_index, total_accounts):
         'error_msg': None
     }
 
-    driver_wrapper = DriverWrapper(tempfile.mkdtemp())
+    driver = None
+    user_data_dir = tempfile.mkdtemp()
 
     try:
-        # 1. 登录时不需要使用代理
-        driver = create_chrome_driver(driver_wrapper.user_data_dir, proxy_str=None)
-        driver_wrapper.set_driver(driver)
+        driver = create_chrome_driver(user_data_dir)
 
         # 登录流程
-        login_status = perform_login_flow(driver_wrapper.get_driver(), username, password, max_retries=3)
+        login_status = perform_login_flow(driver, username, password, max_retries=3)
         if login_status == "password_error":
             result['password_error'] = True
             return result
@@ -834,22 +607,8 @@ def sign_in_account(username, password, account_index, total_accounts):
 
         result['login_success'] = True
 
-        # ====================================================
-        # 关键修正：预热 m.jlc.com，确保本地网络完成 SSO 跨域登录状态的同步
-        # 因为后续所有的发包都在 m.jlc.com，在此处访问触发通行证凭证写入 M 站
-        # ====================================================
-        log(f"账号 {account_index} - 正在同步移动端 M站 的 SSO 登录状态...")
-        try:
-            driver_wrapper.get_driver().get("https://m.jlc.com/pages/my/index")
-            time.sleep(3) # 留时间给 SSO 重定向完成写入 cookie
-        except: pass
-
-        # 2. 登录成功后，挂上代理网络去进行活动请求
-        log(f"账号 {account_index} - 准备切换到代理网络进行活动流程...")
-        driver_wrapper.reconnect_proxy()
-
-        # 活动流程，传入 username 作为 customer_code 并在内部处理异常断开等
-        act_res = perform_brand_activities(driver_wrapper, account_index, username)
+        # 活动流程，传入 username 作为 customer_code
+        act_res = perform_brand_activities(driver, account_index, username)
         
         result['activity_success'] = act_res['success']
         result['customer_code'] = act_res['customer_code']
@@ -869,10 +628,11 @@ def sign_in_account(username, password, account_index, total_accounts):
         log(f"账号 {account_index} - ❌ 账号整体执行异常: {e}")
         result['error_msg'] = str(e)
     finally:
-        if driver_wrapper.driver:
-            force_kill_driver(driver_wrapper.driver)
-        if os.path.exists(driver_wrapper.user_data_dir):
-            try: shutil.rmtree(driver_wrapper.user_data_dir, ignore_errors=True)
+        if driver:
+            try: driver.quit()
+            except: pass
+        if os.path.exists(user_data_dir):
+            try: shutil.rmtree(user_data_dir, ignore_errors=True)
             except: pass
     
     return result
@@ -920,9 +680,6 @@ def main():
     all_results = []
     
     for i, (u, p) in enumerate(zip(usernames, passwords), 1):
-        # 运行时防止僵尸残留造成内存泄漏
-        cleanup_zombie_chrome()
-        
         log(f"\n{'='*50}", show_time=False)
         
         max_attempts = 4
