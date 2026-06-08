@@ -746,7 +746,7 @@ def main():
                     exchangeStates = win.get("exchangeStates")
                     if len(r['all_wins']):
                         if exchangeStates == 1:
-                            log(f"  │   ├── ✅[{未领取}] [{create_time}]获得: {prize_title}", show_time=False)
+                            log(f"  │   ├── ✅[未领取] [{create_time}]获得: {prize_title}", show_time=False)
                         else:
                             log(f"  │   ├── [{create_time}]获得: {prize_title}", show_time=False)
                     
