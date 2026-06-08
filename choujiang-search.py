@@ -727,7 +727,7 @@ def main():
             log(f"账号 {idx} ({code}) 详细结果:", show_time=False)
             
             err_msg = r.get('error_msg')
-            login_str = "✅ 成功" if r['login_success'] else f"❌ 失败 ({err_msg})"
+            login_str = "成功" if r['login_success'] else f"❌ 失败 ({err_msg})"
             log(f"  ├── 登录状态: {login_str}", show_time=False)
             
             if r['login_success']:
@@ -744,10 +744,11 @@ def main():
                     prize_title = win.get("goodsName", "未知奖品")
                     create_time = win.get("createTime")
                     exchangeStates = win.get("exchangeStates")
-                    if exchangeStates == 1:
-                        log(f"  │   ├── [未确认] [{create_time}]获得: {prize_title}", show_time=False)
-                    else:
-                        log(f"  │   ├── 获得: {prize_title}", show_time=False)
+                    if len(r['all_wins']):
+                        if exchangeStates == 1:
+                            log(f"  │   ├── ✅[{未领取}] [{create_time}]获得: {prize_title}", show_time=False)
+                        else:
+                            log(f"  │   ├── [{create_time}]获得: {prize_title}", show_time=False)
                     
                 # total_jindou += r['jindou_change']
                 # total_exc += r['exchange_count']
@@ -771,7 +772,7 @@ def main():
         log("  🎉 所有账号全部活动成功!", show_time=False)
         
     log("=" * 60, show_time=False)
-    # push_summary()
+    push_summary()
     
     if enable_failure_exit and failed_accs:
         sys.exit(1)
