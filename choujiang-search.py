@@ -743,8 +743,9 @@ def main():
                 for idx_p, win in enumerate(r['all_wins'], 1):
                     prize_title = win.get("goodsName", "未知奖品")
                     create_time = win.get("createTime")
-                    if create_time:
-                        log(f"  │   ├── [{create_time}] 获得: {prize_title}", show_time=False)
+                    exchangeStates = win.get("exchangeStates")
+                    if exchangeStates == 1:
+                        log(f"  │   ├── [未确认] [{create_time}]获得: {prize_title}", show_time=False)
                     else:
                         log(f"  │   ├── 获得: {prize_title}", show_time=False)
                     
