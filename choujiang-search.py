@@ -736,7 +736,7 @@ def main():
                 # log(f"  ├── 活动状态: {act_str}", show_time=False)
                 
                 # log(f"  ├── 报名状态: {r['signup_status']}", show_time=False)
-                # log(f"  ├── 金豆变化: {r['initial_jindou']} → {r['final_jindou']} ({r['jindou_change']:+d})", show_time=False)
+                log(f"  ├── 金豆: {r['final_jindou']}", show_time=False)
                 # log(f"  ├── 兑换进度: {r['exchange_count']}/{r['exchange_max']} 次", show_time=False)
                 log(f"  ├── 中奖记录: 共 {len(r['all_wins'])} 条", show_time=False)
                 
