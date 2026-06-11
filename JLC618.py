@@ -10,6 +10,7 @@ import queue
 import re
 import shutil
 from datetime import datetime, timedelta
+import random
 
 # 设置标准输出为 UTF-8 编码，解决 Windows 命令行中文和表情符号乱码问题
 if hasattr(sys.stdout, 'reconfigure'):
