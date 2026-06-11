@@ -515,7 +515,7 @@ def perform_brand_activities(driver, username):
                 user_failed_packages.append(result['choosePackageCode'])
                 
                 failCount += 1
-                if failCount >= 3:
+                if failCount >= 20:
                     log(f"- 兑换券包 {result['choosePackageTitle']} 失败 3 次，结束兑换流程")
                     break
             time.sleep(random.randint(2, 5))
@@ -553,7 +553,7 @@ def perform_brand_activities(driver, username):
             else:
                 log(f"- 兑换优惠券 {result['chooseCouponTitle']} 失败，跳过当前优惠券")
                 failCount += 1
-                if failCount >= 3:
+                if failCount >= 20:
                     log(f"- 兑换优惠券 {result['chooseCouponTitle']} 失败 3 次，跳过当前优惠券")
                     break
 
