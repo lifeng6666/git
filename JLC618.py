@@ -31,6 +31,7 @@ from Utils import pwdEncrypt
 in_summary = False
 summary_logs = []
 FAILED_PACKAGES_FILE = "failed_coupon_packages.json"
+FAILED_COUPONS_FILE = "failed_coupons.json"
 
 def log(msg, show_time=True):
     if show_time:
@@ -64,6 +65,30 @@ def save_failed_package(username, goodsCode):
             log(f"- 已记录失败券包 {goodsCode}，后续将跳过")
         except Exception as e:
             log(f"❌ 保存失败券包失败: {e}")
+
+def load_failed_coupons():
+    """加载已失败的优惠券列表"""
+    if os.path.exists(FAILED_COUPONS_FILE):
+        try:
+            with open(FAILED_COUPONS_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            log(f"❌ 加载失败优惠券列表失败: {e}")
+    return {}
+
+def save_failed_coupon(username, goodsId):
+    """保存失败的优惠券到文件"""
+    failed_coupons = load_failed_coupons()
+    if username not in failed_coupons:
+        failed_coupons[username] = []
+    if goodsId not in failed_coupons[username]:
+        failed_coupons[username].append(goodsId)
+        try:
+            with open(FAILED_COUPONS_FILE, 'w', encoding='utf-8') as f:
+                json.dump(failed_coupons, f, ensure_ascii=False, indent=2)
+            log(f"- 已记录失败优惠券 {goodsId}，后续将跳过")
+        except Exception as e:
+            log(f"❌ 保存失败优惠券失败: {e}")
 
 # ======================== 浏览器与登录验证核心逻辑 ========================
 
@@ -440,6 +465,7 @@ def perform_brand_activities(driver, username):
         'choosePackageTitle': None,
         'chooseCouponSku': None,
         'chooseCouponTitle': None,
+        'goldbean_not_enough': False
     }
     
     try:
@@ -501,6 +527,7 @@ def perform_brand_activities(driver, username):
                     log(f"选择券包: {result['choosePackageTitle']}({result['choosePackageCode']}) (消耗金豆: {choosePackage.get('priceBean')})")
                 else:
                     log(f"- 当前金豆 {currentGoldbean} 已不足以兑换任何券包，兑换券包结束")
+                    result['goldbean_not_enough'] = True
                     break
             else:
                 log(f"- 无可兑换券包或已无金豆，兑换券包结束")
@@ -516,12 +543,17 @@ def perform_brand_activities(driver, username):
                 
                 failCount += 1
                 if failCount >= 20:
-                    log(f"- 兑换券包 {result['choosePackageTitle']} 失败 3 次，结束兑换流程")
+                    log(f"- 兑换券包 {result['choosePackageTitle']} 失败 20 次，结束兑换流程")
                     break
             time.sleep(random.randint(2, 5))
     
         # 3. 兑换优惠券
         failCount = 0
+        failed_coupons = load_failed_coupons()
+        user_failed_coupons = failed_coupons.get(username, [])
+        if user_failed_coupons:
+            log(f"- 已跳过 {len(user_failed_coupons)} 个历史失败优惠券")
+        
         while True:  
             currentGoldbean = api_get_beans(driver, headers)
             log(f"- 当前金豆: {currentGoldbean}，开始匹配可兑换优惠券")
@@ -530,8 +562,12 @@ def perform_brand_activities(driver, username):
             
             # 根据金豆数量选择可兑换优惠券
             if couponList and currentGoldbean > 0:
-                # 筛选出可兑换的商品（priceNum <= 当前金豆数量）
-                affordableCoupon = [package for package in couponList if package.get('priceBean', 9999) <= currentGoldbean]
+                # 筛选出可兑换的商品（priceBean <= 当前金豆数量），并排除历史失败的优惠券
+                affordableCoupon = [
+                    package for package in couponList 
+                    if package.get('priceBean', 9999) <= currentGoldbean 
+                    and package.get('id') not in user_failed_coupons
+                ]
                 
                 if affordableCoupon:
                     # 选择金豆价值最高的商品（priceBean最大的）
@@ -542,6 +578,7 @@ def perform_brand_activities(driver, username):
                     log(f"选择优惠券: {result['chooseCouponTitle']}({result['chooseCouponID']}) (消耗金豆: {chooseCoupon.get('priceBean')})")
                 else:
                     log(f"- 当前金豆 {currentGoldbean} 已不足以兑换任何优惠券，兑换优惠券结束")
+                    result['goldbean_not_enough'] = True
                     break
             else:
                 log(f"- 无可兑换优惠券或已无金豆，兑换优惠券结束")
@@ -552,9 +589,12 @@ def perform_brand_activities(driver, username):
                 result['exchangeCouponCount'] += 1
             else:
                 log(f"- 兑换优惠券 {result['chooseCouponTitle']} 失败，跳过当前优惠券")
+                save_failed_coupon(username, result['chooseCouponID'])
+                user_failed_coupons.append(result['chooseCouponID'])
+                
                 failCount += 1
                 if failCount >= 20:
-                    log(f"- 兑换优惠券 {result['chooseCouponTitle']} 失败 3 次，跳过当前优惠券")
+                    log(f"- 兑换优惠券 {result['chooseCouponTitle']} 失败 20 次，结束兑换流程")
                     break
 
             time.sleep(random.randint(2, 5))
@@ -574,7 +614,8 @@ def sign_in_account(username, password, account_index, total_accounts):
         'customer_code': username,
         'login_success': False,
         'password_error': False,
-        'error_msg': None
+        'error_msg': None,
+        'goldbean_not_enough': False
     }
 
     driver = None
@@ -602,6 +643,7 @@ def sign_in_account(username, password, account_index, total_accounts):
         result['finalGoldbean'] = act_res['finalGoldbean']
         result['exchangePackageCount'] = act_res['exchangePackageCount']
         result['exchangeCouponCount'] = act_res['exchangeCouponCount']
+        result['goldbean_not_enough'] = act_res['goldbean_not_enough']
 
         if not act_res['success']:
             result['error_msg'] = act_res.get('error_msg')
@@ -679,10 +721,12 @@ def main():
                 break
             if res.get('login_success') and (res.get('exchangePackageCount') or res.get('exchangeCouponCount')):
                 break
+            if res.get('goldbean_not_enough'):
+                break
                 
             if attempt < max_attempts:
                 log(f"⚠ 账号 {i} 执行意外失败，等待后重试...")
-                time.sleep(random.randint(5, 10))
+            time.sleep(random.randint(5, 10))
                 
         all_results.append(res)
         
