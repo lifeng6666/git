@@ -30,6 +30,7 @@ from Utils import pwdEncrypt
 # ======================== 全局变量与日志收集 ========================
 in_summary = False
 summary_logs = []
+FAILED_PACKAGES_FILE = "failed_coupon_packages.json"
 
 def log(msg, show_time=True):
     if show_time:
@@ -39,6 +40,30 @@ def log(msg, show_time=True):
     print(full_msg, flush=True)
     if in_summary:
         summary_logs.append(msg)
+
+def load_failed_packages():
+    """加载已失败的券包列表"""
+    if os.path.exists(FAILED_PACKAGES_FILE):
+        try:
+            with open(FAILED_PACKAGES_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            log(f"❌ 加载失败券包列表失败: {e}")
+    return {}
+
+def save_failed_package(username, goodsCode):
+    """保存失败的券包到文件"""
+    failed_packages = load_failed_packages()
+    if username not in failed_packages:
+        failed_packages[username] = []
+    if goodsCode not in failed_packages[username]:
+        failed_packages[username].append(goodsCode)
+        try:
+            with open(FAILED_PACKAGES_FILE, 'w', encoding='utf-8') as f:
+                json.dump(failed_packages, f, ensure_ascii=False, indent=2)
+            log(f"- 已记录失败券包 {goodsCode}，后续将跳过")
+        except Exception as e:
+            log(f"❌ 保存失败券包失败: {e}")
 
 # ======================== 浏览器与登录验证核心逻辑 ========================
 
@@ -447,6 +472,11 @@ def perform_brand_activities(driver, username):
         # 2. 兑换券包
         currentGoldbean = 0
         failCount = 0
+        failed_packages = load_failed_packages()
+        user_failed_packages = failed_packages.get(username, [])
+        if user_failed_packages:
+            log(f"- 已跳过 {len(user_failed_packages)} 个历史失败券包")
+        
         while True:
             currentGoldbean = api_get_beans(driver, headers)
             log(f"- 当前金豆: {currentGoldbean}，开始匹配可兑换券包")
@@ -455,8 +485,12 @@ def perform_brand_activities(driver, username):
             
             # 根据金豆数量选择可兑换券包
             if couponPackageList and currentGoldbean > 0:
-                # 筛选出可兑换的商品（priceNum <= 当前金豆数量）
-                affordable_package = [package for package in couponPackageList if package.get('priceBean', 9999) <= currentGoldbean]
+                # 筛选出可兑换的商品（priceNum <= 当前金豆数量），并排除历史失败的券包
+                affordable_package = [
+                    package for package in couponPackageList 
+                    if package.get('priceBean', 9999) <= currentGoldbean 
+                    and package.get('goodsCode') not in user_failed_packages
+                ]
                 
                 if affordable_package:
                     # 选择金豆价值最高的商品（priceBean最大的）
@@ -477,9 +511,12 @@ def perform_brand_activities(driver, username):
                 result['exchangePackageCount'] += 1
             else:
                 log(f"- 兑换券包 {result['choosePackageTitle']} 失败，跳过当前券包")
+                save_failed_package(username, result['choosePackageCode'])
+                user_failed_packages.append(result['choosePackageCode'])
+                
                 failCount += 1
                 if failCount >= 3:
-                    log(f"- 兑换券包 {result['choosePackageTitle']} 失败 3 次，跳过当前券包")
+                    log(f"- 兑换券包 {result['choosePackageTitle']} 失败 3 次，结束兑换流程")
                     break
             time.sleep(random.randint(2, 5))
     
@@ -500,7 +537,7 @@ def perform_brand_activities(driver, username):
                     # 选择金豆价值最高的商品（priceBean最大的）
                     chooseCoupon = max(affordableCoupon, key=lambda x: x.get('priceBean', 0))
                     result['chooseCouponTitle'] = chooseCoupon.get('goodsTitle')
-                    result['chooseCouponID'] = chooseCoupon.get('goodsId')
+                    result['chooseCouponID'] = chooseCoupon.get('id')
 
                     log(f"选择优惠券: {result['chooseCouponTitle']}({result['chooseCouponID']}) (消耗金豆: {chooseCoupon.get('priceBean')})")
                 else:
