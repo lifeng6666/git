@@ -599,6 +599,8 @@ def perform_brand_activities(driver, username):
 
             time.sleep(random.randint(2, 5))
 
+        result['finalGoldbean'] = api_get_beans(driver, headers)
+
     except Exception as e:
         log(f"- ❌ 活动处理异常: {e}")
         result['success'] = False
@@ -614,8 +616,7 @@ def sign_in_account(username, password, account_index, total_accounts):
         'customer_code': username,
         'login_success': False,
         'password_error': False,
-        'error_msg': None,
-        'goldbean_not_enough': False
+        'error_msg': None
     }
 
     driver = None
@@ -754,10 +755,10 @@ def main():
             log(f"  ├── 登录状态: {login_str}", show_time=False)
             
             if r['exchangePackageCount'] or r['exchangeCouponCount']:
-                log(f"  ├── ✅ 已兑换 {r['exchangePackageCount']} 个商品，{r['exchangeCouponCount']} 个优惠券")
-                log(f"  ├── 初始金豆: {r['initialGoldbean']}, 兑换后金豆: {r['finalGoldbean']},  消耗金豆: {r['initialGoldbean'] - r['finalGoldbean']}")
+                log(f"  ├── ✅ 已兑换 {r['exchangePackageCount']} 个券包，{r['exchangeCouponCount']} 个优惠券", show_time=False)
+                log(f"  ├── 消耗金豆: {r['initialGoldbean'] - r['finalGoldbean']}，剩余金豆: {r['finalGoldbean']}", show_time=False)
             else:
-                log(f"  ├── ❌ 兑换商品失败: {r['error_msg']}")
+                log(f"  ├── ❌ 未兑换任何券包或优惠券:，剩余金豆: {r['finalGoldbean']}", show_time=False)
 
 
 
