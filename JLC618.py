@@ -505,7 +505,7 @@ def perform_brand_activities(driver, username):
         
         while True:
             currentGoldbean = api_get_beans(driver, headers)
-            log(f"- 当前金豆: {currentGoldbean}，开始匹配可兑换券包")
+            log(f"当前金豆: {currentGoldbean}，开始匹配可兑换券包")
 
             couponPackageList = api_get_CouponPackageList(driver, headers)
             
@@ -524,7 +524,7 @@ def perform_brand_activities(driver, username):
                     result['choosePackageTitle'] = choosePackage.get('goodsTitle')
                     result['choosePackageCode'] = choosePackage.get('goodsCode')
 
-                    log(f"选择券包: {result['choosePackageTitle']}({result['choosePackageCode']}) (消耗金豆: {choosePackage.get('priceBean')})")
+                    log(f"- 选择券包: {result['choosePackageTitle']}({result['choosePackageCode']}) (消耗金豆: {choosePackage.get('priceBean')})")
                 else:
                     log(f"- 当前金豆 {currentGoldbean} 已不足以兑换任何券包，兑换券包结束")
                     result['goldbean_not_enough'] = True
@@ -534,16 +534,16 @@ def perform_brand_activities(driver, username):
                 break
             
             if api_do_exchange_package(driver, headers, result['choosePackageCode']):
-                log(f"- 兑换券包 {result['choosePackageTitle']} 成功")
+                log(f"- [√] 兑换券包 {result['choosePackageTitle']} 成功")
                 result['exchangePackageCount'] += 1
             else:
-                log(f"- 兑换券包 {result['choosePackageTitle']} 失败，跳过当前券包")
+                log(f"- [x] 兑换券包 {result['choosePackageTitle']} 失败，跳过当前券包")
                 save_failed_package(username, result['choosePackageCode'])
                 user_failed_packages.append(result['choosePackageCode'])
                 
                 failCount += 1
                 if failCount >= 20:
-                    log(f"- 兑换券包 {result['choosePackageTitle']} 失败 20 次，结束兑换流程")
+                    log(f"- [x] 兑换券包 {result['choosePackageTitle']} 失败 20 次，结束兑换流程")
                     break
             time.sleep(random.randint(2, 5))
     
@@ -556,7 +556,7 @@ def perform_brand_activities(driver, username):
         
         while True:  
             currentGoldbean = api_get_beans(driver, headers)
-            log(f"- 当前金豆: {currentGoldbean}，开始匹配可兑换优惠券")
+            log(f"当前金豆: {currentGoldbean}，开始匹配可兑换优惠券")
 
             couponList = api_get_CouponList(driver, headers)
             
@@ -575,7 +575,7 @@ def perform_brand_activities(driver, username):
                     result['chooseCouponTitle'] = chooseCoupon.get('goodsTitle')
                     result['chooseCouponID'] = chooseCoupon.get('id')
 
-                    log(f"选择优惠券: {result['chooseCouponTitle']}({result['chooseCouponID']}) (消耗金豆: {chooseCoupon.get('priceBean')})")
+                    log(f"- 选择优惠券: {result['chooseCouponTitle']}({result['chooseCouponID']}) (消耗金豆: {chooseCoupon.get('priceBean')})")
                 else:
                     log(f"- 当前金豆 {currentGoldbean} 已不足以兑换任何优惠券，兑换优惠券结束")
                     result['goldbean_not_enough'] = True
@@ -585,16 +585,16 @@ def perform_brand_activities(driver, username):
                 break
             
             if api_do_exchange_coupon(driver, headers, result['chooseCouponID']):
-                log(f"- 兑换优惠券 {result['chooseCouponTitle']} 成功")
+                log(f"- [√] 兑换优惠券 {result['chooseCouponTitle']} 成功")
                 result['exchangeCouponCount'] += 1
             else:
-                log(f"- 兑换优惠券 {result['chooseCouponTitle']} 失败，跳过当前优惠券")
+                log(f"- [x] 兑换优惠券 {result['chooseCouponTitle']} 失败，跳过当前优惠券")
                 save_failed_coupon(username, result['chooseCouponID'])
                 user_failed_coupons.append(result['chooseCouponID'])
                 
                 failCount += 1
                 if failCount >= 20:
-                    log(f"- 兑换优惠券 {result['chooseCouponTitle']} 失败 20 次，结束兑换流程")
+                    log(f"- [x] 兑换优惠券 {result['chooseCouponTitle']} 失败 20 次，结束兑换流程")
                     break
 
             time.sleep(random.randint(2, 5))
