@@ -616,7 +616,7 @@ def main():
     passwords = [p.strip() for p in sys.argv[2].split(',') if p.strip()]
     
     log(f"\n{'='*50}", show_time=False)
-    log(f"🔄 开始进行账号 {username}...")
+    log(f"🔄 开始任务...")
 
     if len(usernames) != len(passwords):
         log("❌ 错误: 账号和密码数量不匹配!")
