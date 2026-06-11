@@ -510,7 +510,7 @@ def perform_brand_activities(driver, username):
             couponPackageList = api_get_CouponPackageList(driver, headers)
             
             # 根据金豆数量选择可兑换券包
-            if couponPackageList and currentGoldbean > 0:
+            if couponPackageList:
                 # 筛选出可兑换的商品（priceNum <= 当前金豆数量），并排除历史失败的券包
                 affordable_package = [
                     package for package in couponPackageList 
@@ -530,7 +530,7 @@ def perform_brand_activities(driver, username):
                     result['goldbean_not_enough'] = True
                     break
             else:
-                log(f"- 无可兑换券包或已无金豆，兑换券包结束")
+                log(f"- 无可兑换券包，兑换券包结束")
                 break
             
             if api_do_exchange_package(driver, headers, result['choosePackageCode']):
@@ -561,7 +561,7 @@ def perform_brand_activities(driver, username):
             couponList = api_get_CouponList(driver, headers)
             
             # 根据金豆数量选择可兑换优惠券
-            if couponList and currentGoldbean > 0:
+            if couponList:
                 # 筛选出可兑换的商品（priceBean <= 当前金豆数量），并排除历史失败的优惠券
                 affordableCoupon = [
                     package for package in couponList 
@@ -581,7 +581,7 @@ def perform_brand_activities(driver, username):
                     result['goldbean_not_enough'] = True
                     break
             else:
-                log(f"- 无可兑换优惠券或已无金豆，兑换优惠券结束")
+                log(f"- 无可兑换优惠券，兑换优惠券结束")
                 break
             
             if api_do_exchange_coupon(driver, headers, result['chooseCouponID']):
