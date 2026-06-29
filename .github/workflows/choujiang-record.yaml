@@ -1,4 +1,4 @@
-name: 嘉立创开源平台注册脚本
+name: 嘉立创中奖记录查询脚本-无代理
 
 on:
   workflow_dispatch:  # 手动触发
@@ -36,7 +36,7 @@ jobs:
           total_count = len(users)
           print(f'DEBUG: Detected {total_count} accounts.')
           
-          group_size = 5
+          group_size = 50
           if total_count == 0:
               chunks = 1
           else:
@@ -58,6 +58,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
+      max-parallel: 20
       matrix:
         group_idx: ${{ fromJson(needs.prepare.outputs.matrix) }}
         
@@ -90,6 +91,7 @@ jobs:
           pip install wheel==0.37.1
           pip install serverchan_sdk==1.0.6
           pip install PyExecJS
+          pip install psutil
           pip install DrissionPage DataRecorder DownloadKit
 
       - name: '准备Chrome驱动'
@@ -118,7 +120,7 @@ jobs:
           
           # === 因为索引从1开始，切片时要减1 ===
           idx = int(os.environ.get('GROUP_IDX', 1)) - 1
-          size = 5
+          size = 50
           
           users_raw = os.environ.get('ALL_USERS', '').replace('\n', '').replace('\r', '')
           pass_raw = os.environ.get('ALL_PASS', '').replace('\n', '').replace('\r', '')
@@ -147,28 +149,4 @@ jobs:
         env:
           DISPLAY: ':99'
         run: |
-          python ./jlc.py "$CURRENT_BATCH_USER" "$CURRENT_BATCH_PASS"
-
-      - name: '重命名结果文件'
-        if: always()
-        run: |
-          if [ -f valid_accounts.txt ]; then
-            mv valid_accounts.txt "valid_accounts_group${{ matrix.group_idx }}.txt"
-          fi
-          for f in *.log; do
-            if [ -f "$f" ]; then
-              mv "$f" "group${{ matrix.group_idx }}_${f}"
-            fi
-          done
-
-      - name: '上传结果文件'
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: jlc-results-group${{ matrix.group_idx }}
-          path: |
-            valid_accounts_group${{ matrix.group_idx }}.txt
-            group${{ matrix.group_idx }}_*.log
-          if-no-files-found: ignore
-          archive: false
-          retention-days: 3
+          python ./choujiang-record.py "$CURRENT_BATCH_USER" "$CURRENT_BATCH_PASS" "true"

@@ -1,14 +1,14 @@
-name: 嘉立创中奖记录查询脚本-无代理
+name: 嘉立创金豆消耗任务
 
 on:
   workflow_dispatch:  # 手动触发
     inputs:
       jlc_usernames:
-        description: '输入账号列表 (多个账号请用英文逗号分隔)'
+        description: '账号'
         required: true
         type: string
       jlc_passwords:
-        description: '输入密码列表 (需与账号一一对应，用英文逗号分隔)'
+        description: '密码'
         required: true
         type: string
 
@@ -149,4 +149,4 @@ jobs:
         env:
           DISPLAY: ':99'
         run: |
-          python ./choujiang-search.py "$CURRENT_BATCH_USER" "$CURRENT_BATCH_PASS" "true"
+          python ./ConsumeGoldBean.py "$CURRENT_BATCH_USER" "$CURRENT_BATCH_PASS"
