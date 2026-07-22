@@ -1,4 +1,4 @@
-name: 嘉立创金豆消耗任务
+name: 金豆消耗任务
 
 on:
   workflow_dispatch:  # 手动触发
