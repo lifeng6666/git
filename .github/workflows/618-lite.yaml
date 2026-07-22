@@ -1,4 +1,4 @@
-name: 嘉立创金豆活动抽奖脚本-无代理
+name: 618金豆活动抽奖脚本-无代理
 
 on:
   workflow_dispatch:  # 手动触发
