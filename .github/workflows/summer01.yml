@@ -120,7 +120,6 @@ jobs:
           # 这里同样替换为从表单输入获取
           ALL_USERS: ${{ github.event.inputs.jlc_usernames }}
           ALL_PASS: ${{ github.event.inputs.jlc_passwords }}
-          ACT_PERIOD: ${{ github.event.inputs.activity_period }}
           GROUP_IDX: ${{ matrix.group_idx }}
         run: |
           python3 -c "
@@ -151,11 +150,11 @@ jobs:
           with open(os.environ['GITHUB_ENV'], 'a') as f:
               f.write(f'CURRENT_BATCH_USER={batch_user_str}\n')
               f.write(f'CURRENT_BATCH_PASS={batch_pass_str}\n')
-              f.write(f'ACT_PERIOD={os.environ.get("ACT_PERIOD", "0")}\n')
           "
 
       - name: '运行脚本'
         env:
           DISPLAY: ':99'
+          ACT_PERIOD: ${{ github.event.inputs.activity_period }}
         run: |
           python ./summer01.py "$CURRENT_BATCH_USER" "$CURRENT_BATCH_PASS" "$ACT_PERIOD" "true"
