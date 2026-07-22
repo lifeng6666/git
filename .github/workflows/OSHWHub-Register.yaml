@@ -1,4 +1,4 @@
-name: 嘉立创开源平台注册脚本
+name: 开源平台注册脚本
 
 on:
   workflow_dispatch:  # 手动触发
