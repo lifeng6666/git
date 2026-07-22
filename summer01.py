@@ -642,7 +642,9 @@ def perform_brand_activities(driver_wrapper, account_index, username, activity_p
         'success': True,
         'error_msg': None
     }
+    print(f'{activity_period}, type: {type(activity_period)}')
     
+    activity_period = 1
     max_proxy_retries = 10
     proxy_retry = 0
     
@@ -918,8 +920,9 @@ def main():
     
     usernames = [u.strip() for u in sys.argv[1].split(',') if u.strip()]
     passwords = [p.strip() for p in sys.argv[2].split(',') if p.strip()]
-    raw_period = sys.argv[3].strip() if len(sys.argv) >= 4 else ""
-    activity_period = int(raw_period) if raw_period else 0
+    activity_period = sys.argv[3].strip() if len(sys.argv) >= 4 else ""
+    print(activity_period)
+    print(type(activity_period))
     enable_failure_exit = (sys.argv[4].lower() == 'true') if len(sys.argv) >= 5 else False
     
     if len(usernames) != len(passwords):
