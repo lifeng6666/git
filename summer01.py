@@ -918,7 +918,8 @@ def main():
     
     usernames = [u.strip() for u in sys.argv[1].split(',') if u.strip()]
     passwords = [p.strip() for p in sys.argv[2].split(',') if p.strip()]
-    activity_period = int(sys.argv[3].strip()) if len(sys.argv) >= 4 else 0
+    raw_period = sys.argv[3].strip() if len(sys.argv) >= 4 else ""
+    activity_period = int(raw_period) if raw_period else 0
     enable_failure_exit = (sys.argv[4].lower() == 'true') if len(sys.argv) >= 5 else False
     
     if len(usernames) != len(passwords):
