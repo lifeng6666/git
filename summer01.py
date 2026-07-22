@@ -638,7 +638,7 @@ def perform_brand_activities(driver_wrapper, account_index, username, activity_p
         'exchange_max': 3,
         'lottery_results': [],
         'all_wins': [],
-        'success': False,
+        'success': True,
         'error_msg': None
     }
     
