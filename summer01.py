@@ -574,7 +574,7 @@ def api_do_vote(driver, headers):
 def api_get_draw_chances(driver, headers):
     """查询剩余抽奖次数"""
     url = "https://m.jlc.com/api/cgi/operationService/front/lottery/getLuckyKeyCount"
-    payload = {"activityCode": "LAKU"}
+    payload = {"activityCode": "LAMD"}
     res = api_with_retry(driver, url, "POST", payload, headers)
     if res and res.get("success") and res.get("code") == 200:
         return int(res.get("data", {}).get("count", 0))
@@ -583,8 +583,9 @@ def api_get_draw_chances(driver, headers):
 
 def api_get_exchange_status(driver, headers):
     """查询兑换抽奖次数的状态 (兑换了多少次/最大多少次)"""
-    url = "https://m.jlc.com/api/activity/brand/activity/ns/getVoucherLotteryDetail"
-    res = api_with_retry(driver, url, "POST", {}, headers)
+    url = "https://m.jlc.com/api/activity/member/day/activity/ns/getVoucherLotteryDetail"
+    payload = {"activityAccessId": "fc7534debba644c5a0d26af52651d16f"}
+    res = api_with_retry(driver, url, "POST", payload, headers)
     if res and res.get("success") and res.get("code") == 200:
         data = res.get("data", {})
         return {
@@ -606,7 +607,7 @@ def api_do_exchange(driver, headers):
 def api_do_draw(driver, headers):
     """执行抽奖"""
     url = "https://m.jlc.com/api/cgi/operationService/front/lottery/turn"
-    payload = {"clientType": "WEB", "activityCode": "LAKU"}
+    payload = {"clientType": "WEB", "activityCode": "LAMD"}
     res = api_with_retry(driver, url, "POST", payload, headers)
     if res and res.get("success") and res.get("code") == 200:
         prize_list = res.get("data", {}).get("prizeList", [])
@@ -637,7 +638,6 @@ def perform_brand_activities(driver_wrapper, account_index, username, activity_p
         'vote_status': '未投票',
         'exchange_count': 0,
         'exchange_max': 3,
-        'lottery_results': [],
         'all_wins': [],
         'success': True,
         'error_msg': None
@@ -645,7 +645,7 @@ def perform_brand_activities(driver_wrapper, account_index, username, activity_p
     
     max_proxy_retries = 10
     proxy_retry = 0
-
+    
     while proxy_retry < max_proxy_retries:
         try:
             if proxy_retry > 0:
@@ -726,7 +726,6 @@ def perform_brand_activities(driver_wrapper, account_index, username, activity_p
                         prize = api_do_draw(driver, headers)
                         if prize:
                             log(f"账号 {account_index} - 🎉 抽奖获得: {prize}")
-                            result['lottery_results'].append(prize)
                         time.sleep(2)
                         continue # 抽奖后直接进行下一次循环（可能还有剩余次数）
                         
@@ -751,13 +750,12 @@ def perform_brand_activities(driver_wrapper, account_index, username, activity_p
                             log(f"账号 {account_index} - ✅ 兑换成功！")
                             result['exchange_count'] += 1
                             time.sleep(1)
-                            result['success'] = True
                             continue # 兑换成功后，进入下一个循环即可触发上面的抽奖逻辑
                         else:
                             log(f"账号 {account_index} - ❌ 兑换失败，中断流程。")
                             break
 
-            # 5. 获取所有中奖记录
+                # 5. 获取所有中奖记录
                 log(f"账号 {account_index} - 正在查询所有中奖记录...")
                 query_wins = None
                 for attempt in range(3):
@@ -783,8 +781,7 @@ def perform_brand_activities(driver_wrapper, account_index, username, activity_p
                 log(f"账号 {account_index} - 查询到 {len(query_wins)} 条中奖记录。")
 
             else:
-                log("活动锁定期，不处理投票、兑换和抽奖")
-
+                log("不在活动期，不处理")
 
             # 6. 获取最终金豆
             result['final_jindou'] = api_get_beans(driver, headers)
@@ -824,7 +821,6 @@ def sign_in_account(username, password, account_index, total_accounts, activity_
         'jindou_change': 0,
         'exchange_count': 0,
         'exchange_max': 3,
-        'lottery_results': [],
         'all_wins': [],
         'error_msg': None
     }
@@ -872,7 +868,6 @@ def sign_in_account(username, password, account_index, total_accounts, activity_
         result['jindou_change'] = act_res['final_jindou'] - act_res['initial_jindou']
         result['exchange_count'] = act_res['exchange_count']
         result['exchange_max'] = act_res['exchange_max']
-        result['lottery_results'] = act_res['lottery_results']
         result['all_wins'] = act_res.get('all_wins', [])
         
         if not act_res['success']:
@@ -991,15 +986,14 @@ def main():
 
                 log(f"  ├── 活动状态: {act_str}", show_time=False)
 
-                if r['activity_success'] or r['vote_status'] == '已投票':
-                    if r['vote_status'] == '已投票':
+                if r['activity_success']:
+                    activity_ok += 1
+                    if r['vote_status'] == '已投票' or r['vote_status'] == '投票成功':
                         vote_ok += 1
-                    if r['activity_success']:
-                        activity_ok += 1
-                        
+                              
                     log(f"  ├── 投票状态: {r['vote_status']}", show_time=False)
                     log(f"  ├── 金豆变化: {r['initial_jindou']} → {r['final_jindou']} ({r['jindou_change']:+d})", show_time=False)
-                    log(f"  ├── 兑换进度: {r['exchange_count']}/{r['exchange_max']} 次", show_time=False)
+                    log(f"  ├── 抽奖状态: {r['exchange_count']}/{r['exchange_max']} 次", show_time=False)
                     log(f"  ├── 中奖记录: 共 {len(r['all_wins'])} 条", show_time=False)
                     
                     for idx_p, win in enumerate(r['all_wins'], 1):
@@ -1025,7 +1019,7 @@ def main():
     log(f"  ├── 总账号数: {total_accounts}", show_time=False)
     log(f"  ├── 登录成功: {login_ok}/{total_accounts}", show_time=False)
     log(f"  ├── 投票成功: {vote_ok}/{total_accounts}", show_time=False)
-    log(f"  ├── 活动成功: {activity_ok}/{total_accounts}", show_time=False)
+    log(f"  ├── 抽奖成功: {activity_ok}/{total_accounts}", show_time=False)
     log(f"  ├── 总计金豆变化: {total_jindou:+d}", show_time=False)
     log(f"  ├── 总计兑换次数: {total_exc}", show_time=False)
     log(f"  ├── 总计中奖记录: {total_wins} 条", show_time=False)
