@@ -1,14 +1,14 @@
-name: 嘉立创金豆消耗任务
+name: 嘉立创金豆活动抽奖脚本-无代理
 
 on:
   workflow_dispatch:  # 手动触发
     inputs:
       jlc_usernames:
-        description: '账号'
+        description: '输入账号列表 (多个账号请用英文逗号分隔)'
         required: true
         type: string
       jlc_passwords:
-        description: '密码'
+        description: '输入密码列表 (需与账号一一对应，用英文逗号分隔)'
         required: true
         type: string
 
@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
-      max-parallel: 20
+      max-parallel: 10
       matrix:
         group_idx: ${{ fromJson(needs.prepare.outputs.matrix) }}
         
@@ -149,4 +149,4 @@ jobs:
         env:
           DISPLAY: ':99'
         run: |
-          python ./ConsumeGoldBean.py "$CURRENT_BATCH_USER" "$CURRENT_BATCH_PASS"
+          python ./618-lite.py "$CURRENT_BATCH_USER" "$CURRENT_BATCH_PASS" "true"

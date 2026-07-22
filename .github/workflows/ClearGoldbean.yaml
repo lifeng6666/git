@@ -1,14 +1,14 @@
-name: 嘉立创金豆活动抽奖脚本
+name: 嘉立创金豆消耗任务
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # 手动触发
     inputs:
       jlc_usernames:
-        description: '输入账号列表'
+        description: '账号'
         required: true
         type: string
       jlc_passwords:
-        description: '输入密码列表'
+        description: '密码'
         required: true
         type: string
 
@@ -149,4 +149,4 @@ jobs:
         env:
           DISPLAY: ':99'
         run: |
-          python ./choujiang.py "$CURRENT_BATCH_USER" "$CURRENT_BATCH_PASS" "true"
+          python ./ClearGoldbean.py "$CURRENT_BATCH_USER" "$CURRENT_BATCH_PASS"

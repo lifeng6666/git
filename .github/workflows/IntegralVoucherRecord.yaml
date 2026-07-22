@@ -1,4 +1,4 @@
-name: 嘉立创金豆活动抽奖脚本-无代理
+name: 嘉立创积分兑换记录查询脚本
 
 on:
   workflow_dispatch:  # 手动触发
@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
-      max-parallel: 20
+      max-parallel: 10
       matrix:
         group_idx: ${{ fromJson(needs.prepare.outputs.matrix) }}
         
@@ -149,4 +149,4 @@ jobs:
         env:
           DISPLAY: ':99'
         run: |
-          python ./choujiang-lite.py "$CURRENT_BATCH_USER" "$CURRENT_BATCH_PASS" "true"
+          python ./IntegralVoucherRecord.py "$CURRENT_BATCH_USER" "$CURRENT_BATCH_PASS" "true"

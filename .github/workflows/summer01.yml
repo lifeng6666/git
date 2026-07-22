@@ -1,4 +1,4 @@
-name: 嘉立创中奖记录查询脚本-无代理
+name: 嘉立创金豆活动抽奖脚本
 
 on:
   workflow_dispatch:  # 手动触发
@@ -9,6 +9,10 @@ on:
         type: string
       jlc_passwords:
         description: '输入密码列表 (需与账号一一对应，用英文逗号分隔)'
+        required: true
+        type: string
+      activity_period:
+        description: '输入活动周期 (0：活动锁定期，1：活动蓄力期，2：活动进行期)'
         required: true
         type: string
 
@@ -58,10 +62,13 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
-      max-parallel: 20
+      max-parallel: 10
       matrix:
         group_idx: ${{ fromJson(needs.prepare.outputs.matrix) }}
-        
+    env:
+       DM_APIKEY: ${{ secrets.DM_APIKEY }}
+       DM_PWD: ${{ secrets.DM_PWD }}
+
     steps:
       - name: '检出代码'
         uses: actions/checkout@v6
@@ -113,6 +120,7 @@ jobs:
           # 这里同样替换为从表单输入获取
           ALL_USERS: ${{ github.event.inputs.jlc_usernames }}
           ALL_PASS: ${{ github.event.inputs.jlc_passwords }}
+          ACT_PERIOD: ${{ github.event.inputs.activity_period }}
           GROUP_IDX: ${{ matrix.group_idx }}
         run: |
           python3 -c "
@@ -149,4 +157,4 @@ jobs:
         env:
           DISPLAY: ':99'
         run: |
-          python ./choujiang-record.py "$CURRENT_BATCH_USER" "$CURRENT_BATCH_PASS" "true"
+          python ./summer01.py "$CURRENT_BATCH_USER" "$CURRENT_BATCH_PASS" "$ACT_PERIOD" "true"
