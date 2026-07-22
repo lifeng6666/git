@@ -151,6 +151,7 @@ jobs:
           with open(os.environ['GITHUB_ENV'], 'a') as f:
               f.write(f'CURRENT_BATCH_USER={batch_user_str}\n')
               f.write(f'CURRENT_BATCH_PASS={batch_pass_str}\n')
+              f.write(f'ACT_PERIOD={os.environ.get("ACT_PERIOD", "0")}\n')
           "
 
       - name: '运行脚本'
