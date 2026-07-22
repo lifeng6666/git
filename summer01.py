@@ -644,7 +644,7 @@ def perform_brand_activities(driver_wrapper, account_index, username, activity_p
     
     max_proxy_retries = 10
     proxy_retry = 0
-    
+    activity_period = "1"
     while proxy_retry < max_proxy_retries:
         try:
             if proxy_retry > 0:
