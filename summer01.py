@@ -967,7 +967,7 @@ def main():
     log("📊 嘉立创盛夏福利日活动任务完成总结", show_time=False)
     log("=" * 60, show_time=False)
     
-    login_ok = activity_ok = total_jindou = total_exc = total_wins = 0
+    vote_ok = login_ok = activity_ok = total_jindou = total_exc = total_wins = 0
     failed_accs = []
     
     for r in all_results:
