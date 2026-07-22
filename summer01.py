@@ -645,7 +645,7 @@ def perform_brand_activities(driver_wrapper, account_index, username, activity_p
     
     max_proxy_retries = 10
     proxy_retry = 0
-    activity_period = "1"
+
     while proxy_retry < max_proxy_retries:
         try:
             if proxy_retry > 0:
@@ -688,7 +688,7 @@ def perform_brand_activities(driver_wrapper, account_index, username, activity_p
                 log(f"账号 {account_index} - 当前金豆: {result['initial_jindou']}")
 
             # 3. 处理投票
-            if activity_period == "1":
+            if activity_period == 1:
                 log(f"账号 {account_index} - 活动蓄力期，进入投票流程 ...")
 
                 if result['vote_status'] in ['未投票']:
@@ -706,7 +706,7 @@ def perform_brand_activities(driver_wrapper, account_index, username, activity_p
                             raise Exception("投票接口调用逻辑拒绝（可能是未登录导致 401 或活动已结束）")
             
             # 4. 智能循环: 抽奖 <-> 兑换
-            elif activity_period == "2":
+            elif activity_period == 2:
                 log(f"账号 {account_index} - 活动进行期，进入兑换次数和抽奖流程 ...")
                 
                 exc_status = api_get_exchange_status(driver, headers)
