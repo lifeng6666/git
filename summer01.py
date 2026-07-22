@@ -980,7 +980,9 @@ def main():
             failed_accs.append(idx)
         else:
             log(f"账号 {idx} ({code}) 详细结果:", show_time=False)
-            log(f"  ├── 登录状态: {"✅ 成功" if r['login_success'] else f"❌ 失败 ({r.get('error_msg')})"}", show_time=False)
+            err_msg = r.get('error_msg')
+            login_str = "✅ 成功" if r['login_success'] else f"❌ 失败 ({err_msg})"
+            log(f"  ├── 登录状态: {login_str}", show_time=False)
             
             if r['login_success']:
                 login_ok += 1
