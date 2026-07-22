@@ -642,9 +642,7 @@ def perform_brand_activities(driver_wrapper, account_index, username, activity_p
         'success': True,
         'error_msg': None
     }
-    print(f'{activity_period}, type: {type(activity_period)}')
-    
-    activity_period = 1
+
     max_proxy_retries = 10
     proxy_retry = 0
     
@@ -690,7 +688,7 @@ def perform_brand_activities(driver_wrapper, account_index, username, activity_p
                 log(f"账号 {account_index} - 当前金豆: {result['initial_jindou']}")
 
             # 3. 处理投票
-            if activity_period == 1:
+            if activity_period == "1":
                 log(f"账号 {account_index} - 活动蓄力期，进入投票流程 ...")
 
                 if result['vote_status'] in ['未投票']:
@@ -708,7 +706,7 @@ def perform_brand_activities(driver_wrapper, account_index, username, activity_p
                             raise Exception("投票接口调用逻辑拒绝（可能是未登录导致 401 或活动已结束）")
             
             # 4. 智能循环: 抽奖 <-> 兑换
-            elif activity_period == 2:
+            elif activity_period == "2":
                 log(f"账号 {account_index} - 活动进行期，进入兑换次数和抽奖流程 ...")
                 
                 exc_status = api_get_exchange_status(driver, headers)
@@ -920,9 +918,7 @@ def main():
     
     usernames = [u.strip() for u in sys.argv[1].split(',') if u.strip()]
     passwords = [p.strip() for p in sys.argv[2].split(',') if p.strip()]
-    activity_period = sys.argv[3].strip() if len(sys.argv) >= 4 else ""
-    print(activity_period)
-    print(type(activity_period))
+    activity_period = sys.argv[3].strip() if len(sys.argv) >= 4 else "0"
     enable_failure_exit = (sys.argv[4].lower() == 'true') if len(sys.argv) >= 5 else False
     
     if len(usernames) != len(passwords):
