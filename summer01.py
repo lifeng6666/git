@@ -941,20 +941,20 @@ def main():
         max_attempts = 4
         res = None
         
-        for attempt in range(1, max_attempts + 1):
-            if attempt > 1:
-                log(f"🔄 账号 {i} 正在进行第 {attempt - 1} 次重试...")
+        # for attempt in range(1, max_attempts + 1):
+        #     if attempt > 1:
+        #         log(f"🔄 账号 {i} 正在进行第 {attempt - 1} 次重试...")
                 
-            res = sign_in_account(u, p, i, total_accounts, activity_period)
+        res = sign_in_account(u, p, i, total_accounts, activity_period)
             
-            if res.get('password_error'):
-                break
-            if res.get('login_success') and res.get('activity_success'):
-                break
+        #     if res.get('password_error'):
+        #         break
+        #     if res.get('login_success') and res.get('activity_success'):
+        #         break
                 
-            if attempt < max_attempts:
-                log(f"⚠ 账号 {i} 执行意外失败，等待后重试...")
-                time.sleep(random.randint(5, 10))
+        #     if attempt < max_attempts:
+        #         log(f"⚠ 账号 {i} 执行意外失败，等待后重试...")
+        #         time.sleep(random.randint(5, 10))
                 
         all_results.append(res)
         
