@@ -642,7 +642,7 @@ def perform_brand_activities(driver_wrapper, account_index, username, activity_p
         'success': True,
         'error_msg': None
     }
-
+    
     max_proxy_retries = 10
     proxy_retry = 0
     
@@ -686,7 +686,11 @@ def perform_brand_activities(driver_wrapper, account_index, username, activity_p
                     pass # api 异常打印会显示，且流程继续走如果需要
                 result['initial_jindou_fetched'] = True
                 log(f"账号 {account_index} - 当前金豆: {result['initial_jindou']}")
-
+                if result['initial_jindou'] == 0:
+                    result['success'] = False
+                    result['error_msg'] = "金豆不足"
+                    break
+            
             # 3. 处理投票
             if activity_period == "1":
                 log(f"账号 {account_index} - 活动蓄力期，进入投票流程 ...")
