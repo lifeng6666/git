@@ -695,19 +695,28 @@ def perform_brand_activities(driver_wrapper, account_index, username, activity_p
             if activity_period == "1":
                 log(f"账号 {account_index} - 活动蓄力期，进入投票流程 ...")
 
-                if result['vote_status'] in ['未投票']:
-                    is_voted = api_check_vote(driver, headers)
-                    if is_voted:
-                        result['vote_status'] = '已投票'
-                        log(f"账号 {account_index} - 状态: {result['vote_status']}")
-                    else:
-                        log(f"账号 {account_index} - 未投票，准备发包投票...")
-                        if api_do_vote(driver, headers):
-                            result['vote_status'] = '投票成功'
-                            log(f"账号 {account_index} - ✅ 投票成功")
-                        else:
-                            result['vote_status'] = '投票失败'
-                            raise Exception("投票接口调用逻辑拒绝（可能是未登录导致 401 或活动已结束）")
+                # if result['vote_status'] in ['未投票']:
+                #     is_voted = api_check_vote(driver, headers)
+                #     if is_voted:
+                #         result['vote_status'] = '已投票'
+                #         log(f"账号 {account_index} - 状态: {result['vote_status']}")
+                #     else:
+                #         log(f"账号 {account_index} - 未投票，准备发包投票...")
+                #         if api_do_vote(driver, headers):
+                #             result['vote_status'] = '投票成功'
+                #             log(f"账号 {account_index} - ✅ 投票成功")
+                #         else:
+                #             result['vote_status'] = '投票失败'
+                #             raise Exception("投票接口调用逻辑拒绝（可能是未登录导致 401 或活动已结束）")
+
+
+
+                if api_do_vote(driver, headers):
+                    result['vote_status'] = '投票成功'
+                    log(f"账号 {account_index} - ✅ 投票成功")
+                else:
+                    result['vote_status'] = '投票失败'
+                    raise Exception("投票接口调用逻辑拒绝（可能是未登录导致 401 或活动已结束）")
             
             # 4. 智能循环: 抽奖 <-> 兑换
             elif activity_period == "2":
