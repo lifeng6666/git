@@ -633,12 +633,14 @@ def api_Popup_BlindBoxGift(driver, headers):
     payload = {"activityAccessId": "fc7534debba644c5a0d26af52651d16f"}
     res = api_with_retry(driver, url, "POST", payload, headers)
     if res and res.get("success") == True and res.get("code") == 200:
-        giftConfigList = res.get("data", {}).get("giftConfigList", [])
-        issuedLotteryCount = res.get("data", {}).get("issuedLotteryCount", 0)
+        giftConfigList = res.get("data", {}).get("giftConfigList")
+        issuedLotteryCount = res.get("data", {}).get("issuedLotteryCount")
         log(f"  [√] 共解析到 {len(giftConfigList)} 张券，{issuedLotteryCount} 次抽奖机会")
-        for giftConfig in giftConfigList:
-            log(f"    [-] {giftConfig.get('couponName', '未知优惠券')}")
-        return True
+        log(f"  [--] {str(res)[:150]}")
+        giftList = []
+        for gift in giftConfigList:
+            giftList.append(gift.get("couponName", "未知优惠券"))
+        return True, giftList
 
     log(f"  [x] 领取盲盒礼包失败 {res.get('errorCode', '未知错误码')} {res.get('message', '未知错误信息')}")
     return False
@@ -670,6 +672,8 @@ def perform_brand_activities(driver_wrapper, account_index, username, activity_p
         'exchange_count': 0,
         'exchange_max': 3,
         'all_wins': [],
+        'winning': "",
+        'blind_box_gift': [],
         'success': True,
         'error_msg': None
     }
@@ -754,20 +758,25 @@ def perform_brand_activities(driver_wrapper, account_index, username, activity_p
                 log(f"账号 {account_index} - 活动进行期，进入兑换次数和抽奖流程 ...")
 
                 # 领取盲盒礼包
-                if api_Popup_BlindBoxGift(driver, headers):
+                success, giftList = api_Popup_BlindBoxGift(driver, headers)
+                if success:
                     log(f"账号 {account_index} - ✅ 领取盲盒礼包成功")
+                    result['blind_box_gift'] = giftList
                 else:
                     log(f"账号 {account_index} - ❌ 领取盲盒礼包失败")
 
                 # 查询是否中奖（免单中奖，金豆中奖）
                 isFreeOrderWinning, isVoucherWinning = api_get_MyWinning(driver, headers)
                 if isFreeOrderWinning or isVoucherWinning:
+                    result['winning'] = "已中奖，请登录账号查看"
                     if isFreeOrderWinning:
                         log(f"账号 {account_index} - 中奖免单")
-                    else:
+                    if isVoucherWinning:
                         log(f"账号 {account_index} - 中奖金豆")
                 else:
                     log(f"账号 {account_index} - 未中奖")
+                    result['winning'] = "未中奖"
+
                 
                 # 智能循环: 抽奖 <-> 兑换
                 exc_status = api_get_exchange_status(driver, headers)
@@ -818,7 +827,7 @@ def perform_brand_activities(driver_wrapper, account_index, username, activity_p
 
                 # 5. 获取所有中奖记录
                 log(f"账号 {account_index} - 正在查询所有中奖记录...")
-                query_wins = None
+                query_wins = []
                 for attempt in range(3):
                     try:
                         query_wins = api_query_wins(driver, headers)
@@ -930,6 +939,8 @@ def sign_in_account(username, password, account_index, total_accounts, activity_
         result['exchange_count'] = act_res['exchange_count']
         result['exchange_max'] = act_res['exchange_max']
         result['all_wins'] = act_res.get('all_wins', [])
+        result['winning'] = act_res['winning']
+        result['blind_box_gift'] = act_res.get('blind_box_gift', [])
         
         if not act_res['success']:
             result['error_msg'] = act_res.get('error_msg')
@@ -1055,6 +1066,8 @@ def main():
                     log(f"  ├── 投票状态: {r['vote_status']}", show_time=False)
                     log(f"  ├── 金豆变化: {r['initial_jindou']} → {r['final_jindou']} ({r['jindou_change']:+d})", show_time=False)
                     log(f"  ├── 抽奖状态: {r['exchange_count']}/{r['exchange_max']} 次", show_time=False)
+                    log(f"  ├── 中奖状态: {r['winning']}", show_time=False)
+                    log(f"  ├── 领取盲盒礼包: {r['blind_box_gift']}", show_time=False)
                     log(f"  ├── 中奖记录: 共 {len(r['all_wins'])} 条", show_time=False)
                     
                     for idx_p, win in enumerate(r['all_wins'], 1):
