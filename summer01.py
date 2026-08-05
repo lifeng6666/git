@@ -634,7 +634,7 @@ def api_Popup_BlindBoxGift(driver, headers):
     res = api_with_retry(driver, url, "POST", payload, headers)
     if res and res.get("success") == True and res.get("code") == 200:
         giftConfigList = res.get("data", {}).get("giftConfigList", [])
-        issuedLotteryCount = int(res.get("data", {}).get("issuedLotteryCount", 0))
+        issuedLotteryCount = res.get("data", {}).get("issuedLotteryCount", 0)
         log(f"  [√] 共解析到 {len(giftConfigList)} 张券，{issuedLotteryCount} 次抽奖机会")
         for giftConfig in giftConfigList:
             log(f"    [-] {giftConfig.get('couponName', '未知优惠券')}")
