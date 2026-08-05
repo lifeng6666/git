@@ -597,8 +597,9 @@ def api_get_exchange_status(driver, headers):
 
 def api_do_exchange(driver, headers):
     """使用5金豆兑换一次抽奖机会"""
-    url = "https://m.jlc.com/api/activity/brand/activity/exchangeLotteryChance"
-    res = api_with_retry(driver, url, "POST", {}, headers)
+    url = "https://m.jlc.com/api/activity/member/day/activity/exchangeLotteryChance"
+    payload = {"activityAccessId": "fc7534debba644c5a0d26af52651d16f"}
+    res = api_with_retry(driver, url, "POST", payload, headers)
     if res and res.get("success") and res.get("code") == 200:
         return True
     log(f"  [x] 兑换抽奖机会失败: {str(res)[:150]}")
@@ -625,6 +626,36 @@ def api_query_wins(driver, headers):
         return res.get("data", {}).get("data", [])
     log(f"  [x] 查询中奖记录发包失败: {str(res)[:150] if res else 'None'}")
     return None
+
+def api_Popup_BlindBoxGift(driver, headers):
+    """领取盲盒礼包"""
+    url = "https://m.jlc.com/api/activity/member/day/activity/selectBlindBoxGiftPopup"
+    payload = {"activityAccessId": "fc7534debba644c5a0d26af52651d16f"}
+    res = api_with_retry(driver, url, "POST", payload, headers)
+    if res and res.get("success") == True and res.get("code") == 200:
+        giftConfigList = res.get("data", {}).get("giftConfigList", [])
+        issuedLotteryCount = int(res.get("data", {}).get("issuedLotteryCount", 0))
+        log(f"  [√] 共解析到 {len(giftConfigList)} 张券，{issuedLotteryCount} 次抽奖机会")
+        for giftConfig in giftConfigList:
+            log(f"    [-] {giftConfig.get('couponName', '未知优惠券')}")
+        return True
+
+    log(f"  [x] 领取盲盒礼包失败 {res.get('errorCode', '未知错误码')} {res.get('message', '未知错误信息')}")
+    return False
+
+def api_get_MyWinning(driver, headers):
+    """查询是否中奖"""
+    url = "https://m.jlc.com/api/activity/member/day/activity/selectMyWinning"
+    payload = {"activityAccessId": "fc7534debba644c5a0d26af52651d16f"}
+    res = api_with_retry(driver, url, "POST", payload, headers)
+    if isinstance(res, dict) and res.get("success") == True and res.get("code") == 200:
+        isFreeOrderWinning = res.get("data", {}).get("isFreeOrderWinning", False)
+        isVoucherWinning = res.get("data", {}).get("isVoucherWinning", False)
+        return isFreeOrderWinning, isVoucherWinning
+
+    log(f"  [x] 查询中奖记录发包失败: {str(res)[:150] if res else 'None'}")
+    return None
+
 
 # ======================== 核心活动编排逻辑 ========================
 
@@ -718,10 +749,27 @@ def perform_brand_activities(driver_wrapper, account_index, username, activity_p
                     result['vote_status'] = '投票失败'
                     raise Exception("投票接口调用逻辑拒绝（可能是未登录导致 401 或活动已结束）")
             
-            # 4. 智能循环: 抽奖 <-> 兑换
+            # 4.
             elif activity_period == "2":
                 log(f"账号 {account_index} - 活动进行期，进入兑换次数和抽奖流程 ...")
+
+                # 领取盲盒礼包
+                if api_Popup_BlindBoxGift(driver, headers):
+                    log(f"账号 {account_index} - ✅ 领取盲盒礼包成功")
+                else:
+                    log(f"账号 {account_index} - ❌ 领取盲盒礼包失败")
+
+                # 查询是否中奖（免单中奖，金豆中奖）
+                isFreeOrderWinning, isVoucherWinning = api_get_MyWinning(driver, headers)
+                if isFreeOrderWinning or isVoucherWinning:
+                    if isFreeOrderWinning:
+                        log(f"账号 {account_index} - 中奖免单")
+                    else:
+                        log(f"账号 {account_index} - 中奖金豆")
+                else:
+                    log(f"账号 {account_index} - 未中奖")
                 
+                # 智能循环: 抽奖 <-> 兑换
                 exc_status = api_get_exchange_status(driver, headers)
                 result['exchange_count'] = exc_status['exc_num']
                 result['exchange_max'] = exc_status['exc_max']
