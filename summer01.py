@@ -636,7 +636,6 @@ def api_Popup_BlindBoxGift(driver, headers):
         giftConfigList = res.get("data", {}).get("giftConfigList")
         issuedLotteryCount = res.get("data", {}).get("issuedLotteryCount")
         log(f"  [√] 共解析到 {len(giftConfigList)} 张券，{issuedLotteryCount} 次抽奖机会")
-        log(f"  [--] {str(res)[:150]}")
         giftList = []
         for gift in giftConfigList:
             giftList.append(gift.get("couponName", "未知优惠券"))
@@ -757,18 +756,19 @@ def perform_brand_activities(driver_wrapper, account_index, username, activity_p
             elif activity_period == "2":
                 log(f"账号 {account_index} - 活动进行期，进入兑换次数和抽奖流程 ...")
 
-                # 领取盲盒礼包
-                success, giftList = api_Popup_BlindBoxGift(driver, headers)
-                if success:
-                    log(f"账号 {account_index} - ✅ 领取盲盒礼包成功")
-                    result['blind_box_gift'] = giftList
-                else:
-                    log(f"账号 {account_index} - ❌ 领取盲盒礼包失败")
+                # # 领取盲盒礼包
+                # # 打开https://m.jlc.com/pages-promo/brand-campaign/index会自动领取盲盒礼包，所以手动领取时是空的
+                # success, giftList = api_Popup_BlindBoxGift(driver, headers)
+                # if success:
+                #     log(f"账号 {account_index} - ✅ 领取盲盒礼包成功")
+                #     result['blind_box_gift'] = giftList
+                # else:
+                #     log(f"账号 {account_index} - ❌ 领取盲盒礼包失败")
 
                 # 查询是否中奖（免单中奖，金豆中奖）
                 isFreeOrderWinning, isVoucherWinning = api_get_MyWinning(driver, headers)
                 if isFreeOrderWinning or isVoucherWinning:
-                    result['winning'] = "已中奖，请登录账号查看"
+                    result['winning'] = "√ 已中奖，请登录账号查看"
                     if isFreeOrderWinning:
                         log(f"账号 {account_index} - 中奖免单")
                     if isVoucherWinning:
