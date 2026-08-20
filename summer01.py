@@ -224,6 +224,7 @@ def create_chrome_driver(user_data_dir=None, proxy_str=None):
         chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
 
     driver = webdriver.Chrome(options=chrome_options)
+    
     # service = Service(executable_path="./chromedriver.exe")
     # driver = webdriver.Chrome(options=chrome_options, service=service)
 
