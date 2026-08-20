@@ -15,6 +15,7 @@ from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
@@ -222,7 +223,11 @@ def create_chrome_driver(user_data_dir=None, proxy_str=None):
     if user_data_dir:
         chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
 
-    driver = webdriver.Chrome(options=chrome_options)
+    # driver = webdriver.Chrome(options=chrome_options)
+
+    service = Service(executable_path="./chromedriver.exe")
+    driver = webdriver.Chrome(options=chrome_options, service=service)
+
     driver.set_page_load_timeout(60)
     driver.set_script_timeout(60)
 
@@ -287,6 +292,8 @@ def call_aliv3min_with_timeout(timeout_seconds=180, max_retries=18):
                             try: process.terminate(); process.wait(timeout=5)
                             except: pass
                             return match.group(1)
+                    # 透传 AliV3min 的诊断行到日志，便于在 GHA 中定位 captcha 失败的真实原因
+                    log(f"🔎 captcha | {line.rstrip()}")
 
             if process and process.poll() is None:
                 try: process.kill(); process.wait(timeout=5)
