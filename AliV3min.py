@@ -15,6 +15,13 @@ subprocess.Popen = partial(subprocess.Popen, encoding='utf-8', errors='ignore')
 
 import requests
 
+# Windows 控制台/管道默认 GBK 编码，输出 emoji 会抛 UnicodeEncodeError，强制改为 UTF-8
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except Exception:
+    pass
+
 proxy = None
 
 class AliV3:

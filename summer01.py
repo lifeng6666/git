@@ -15,6 +15,7 @@ from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
@@ -223,6 +224,9 @@ def create_chrome_driver(user_data_dir=None, proxy_str=None):
         chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
 
     driver = webdriver.Chrome(options=chrome_options)
+    # service = Service(executable_path="./chromedriver.exe")
+    # driver = webdriver.Chrome(options=chrome_options, service=service)
+
     driver.set_page_load_timeout(60)
     driver.set_script_timeout(60)
 

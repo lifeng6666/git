@@ -3,6 +3,7 @@ import time
 import json
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -25,7 +26,11 @@ def main():
     
     # 初始化 Driver
     try:
+        # service = Service(executable_path="./chromedriver.exe")
+        # driver = webdriver.Chrome(options=chrome_options, service=service)
+
         driver = webdriver.Chrome(options=chrome_options)
+
     except Exception as e:
         log(f"无法启动 WebDriver: {e}")
         sys.exit(1)
