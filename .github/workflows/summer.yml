@@ -157,4 +157,4 @@ jobs:
           DISPLAY: ':99'
           ACT_PERIOD: ${{ github.event.inputs.activity_period }}
         run: |
-          python ./summer01-lite.py "$CURRENT_BATCH_USER" "$CURRENT_BATCH_PASS" "$ACT_PERIOD" "true"
+          python ./summer-lite.py "$CURRENT_BATCH_USER" "$CURRENT_BATCH_PASS" "$ACT_PERIOD" "true"

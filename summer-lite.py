@@ -223,10 +223,10 @@ def create_chrome_driver(user_data_dir=None, proxy_str=None):
     if user_data_dir:
         chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
 
-    driver = webdriver.Chrome(options=chrome_options)
-
-    # service = Service(executable_path="./chromedriver.exe")
-    # driver = webdriver.Chrome(options=chrome_options, service=service)
+    # driver = webdriver.Chrome(options=chrome_options)
+    
+    service = Service(executable_path="./chromedriver.exe")
+    driver = webdriver.Chrome(options=chrome_options, service=service)
 
     driver.set_page_load_timeout(60)
     driver.set_script_timeout(60)
@@ -293,7 +293,7 @@ def call_aliv3min_with_timeout(timeout_seconds=180, max_retries=18):
                             except: pass
                             return match.group(1)
                     # 透传 AliV3min 的诊断行到日志，便于在 GHA 中定位 captcha 失败的真实原因
-                    log(f"🔎 captcha | {line.rstrip()}")
+                    # log(f"🔎 captcha | {line.rstrip()}")
 
             if process and process.poll() is None:
                 try: process.kill(); process.wait(timeout=5)
@@ -548,30 +548,36 @@ def api_get_beans(driver, headers):
 def api_check_vote(driver, headers):
     """查询是否已投票"""
     url = "https://m.jlc.com/api/activity/member/day/activity/ns/selectVoteConfig"
-    payload = {"activityAccessId": "fc7534debba644c5a0d26af52651d16f"}
+    # payload = {"activityAccessId": "fc7534debba644c5a0d26af52651d16f"}  # 第一期
+    payload = {"activityAccessId": "bf69c3403f094a52a787bfae528da7ea"}  # 第二期
     voteProductConfigList = {
-        "SKUJY5": "京东京造户外露营车",
+        "SKUJY5": "京东京造户外露营车", # 第一期
         "SKUJLF": "金士顿U盘 64GB",
         "SKUJ3Y": "绿林开口梅花扳手套装",
-        "SKUJ35": "三层落地置物架"
+        "SKUJ35": "三层落地置物架",
+        "SKUJ5O": "小度智能音箱灵动版", # 第二期
+        "SKUJYE": "Keep墨灰色哑铃  5kg*2",
+        "SKUJM7": "当妮香氛洗衣液 1.9kg*3瓶",
+        "SKU88Q": "曼富图PIXI Mini Tripod桌面三脚架"
     }
     res = api_with_retry(driver, url, "POST", payload, headers)
     if res and res.get("success") and res.get("code") == 200:
         needUseVoucher = res.get("data").get("needUseVoucher", False)
         myVotedProductSku = res.get("data").get("myVotedProductSku", "")
         if needUseVoucher:
-            return False
+            return False, myVotedProductSku
         else:
             log(f"  [-] 已投票: {voteProductConfigList.get(myVotedProductSku, '未知商品')}")
-            return True
+            return True, myVotedProductSku
 
     log(f"  [x] 查询投票状态失败: {str(res)[:150]}")
-    return False
+    return False, None
 
-def api_do_vote(driver, headers):
+def api_do_vote(driver, headers, productSku):
     """执行活动投票"""
     url = "https://m.jlc.com/api/activity/member/day/activity/vote"
-    payload = {"activityAccessId": "fc7534debba644c5a0d26af52651d16f", "productSku": "SKUJY5"}
+    # payload = {"activityAccessId": "fc7534debba644c5a0d26af52651d16f", "productSku": "SKUJY5"}  # 第一期
+    payload = {"activityAccessId": "bf69c3403f094a52a787bfae528da7ea", "productSku": productSku}  # 第二期
     res = api_with_retry(driver, url, "POST", payload, headers)
     if res and res.get("success") and res.get("code") == 200:
         return True
@@ -581,7 +587,8 @@ def api_do_vote(driver, headers):
 def api_get_draw_chances(driver, headers):
     """查询剩余抽奖次数"""
     url = "https://m.jlc.com/api/cgi/operationService/front/lottery/getLuckyKeyCount"
-    payload = {"activityCode": "LAMD"}
+    # payload = {"activityCode": "LAMD"}  # 第一期
+    payload = {"activityCode": "LAJJT"}  # 第二期
     res = api_with_retry(driver, url, "POST", payload, headers)
     if res and res.get("success") and res.get("code") == 200:
         return int(res.get("data", {}).get("count", 0))
@@ -591,7 +598,8 @@ def api_get_draw_chances(driver, headers):
 def api_get_exchange_status(driver, headers):
     """查询兑换抽奖次数的状态 (兑换了多少次/最大多少次)"""
     url = "https://m.jlc.com/api/activity/member/day/activity/ns/getVoucherLotteryDetail"
-    payload = {"activityAccessId": "fc7534debba644c5a0d26af52651d16f"}
+    # payload = {"activityAccessId": "fc7534debba644c5a0d26af52651d16f"}  # 第一期
+    payload = {"activityAccessId": "bf69c3403f094a52a787bfae528da7ea"}  # 第二期
     res = api_with_retry(driver, url, "POST", payload, headers)
     if res and res.get("success") and res.get("code") == 200:
         data = res.get("data", {})
@@ -605,7 +613,8 @@ def api_get_exchange_status(driver, headers):
 def api_do_exchange(driver, headers):
     """使用5金豆兑换一次抽奖机会"""
     url = "https://m.jlc.com/api/activity/member/day/activity/exchangeLotteryChance"
-    payload = {"activityAccessId": "fc7534debba644c5a0d26af52651d16f"}
+    # payload = {"activityAccessId": "fc7534debba644c5a0d26af52651d16f"}  # 第一期
+    payload = {"activityAccessId": "bf69c3403f094a52a787bfae528da7ea"}  # 第二期
     res = api_with_retry(driver, url, "POST", payload, headers)
     if res and res.get("success") and res.get("code") == 200:
         return True
@@ -615,7 +624,8 @@ def api_do_exchange(driver, headers):
 def api_do_draw(driver, headers):
     """执行抽奖"""
     url = "https://m.jlc.com/api/cgi/operationService/front/lottery/turn"
-    payload = {"clientType": "WEB", "activityCode": "LAMD"}
+    # payload = {"clientType": "WEB", "activityCode": "LAMD"}  # 第一期
+    payload = {"clientType": "WEB", "activityCode": "LAJJT"}  # 第二期
     res = api_with_retry(driver, url, "POST", payload, headers)
     if res and res.get("success") and res.get("code") == 200:
         prize_list = res.get("data", {}).get("prizeList", [])
@@ -627,7 +637,8 @@ def api_do_draw(driver, headers):
 def api_query_wins(driver, headers):
     """查询该账号所有中奖记录"""
     url = "https://m.jlc.com/api/cgi/operationService/front/lottery/queryWins"
-    payload = {"pageNum": 1, "pageSize": 1000, "activityCode": "LAMD"}
+    # payload = {"pageNum": 1, "pageSize": 1000, "activityCode": "LAMD"}  # 第一期
+    payload = {"pageNum": 1, "pageSize": 1000, "activityCode": "LAJJT"}  # 第二期
     res = api_with_retry(driver, url, "POST", payload, headers)
     if isinstance(res, dict) and res.get("success") and res.get("code") == 200:
         return res.get("data", {}).get("data", [])
@@ -637,7 +648,8 @@ def api_query_wins(driver, headers):
 def api_Popup_BlindBoxGift(driver, headers):
     """领取盲盒礼包"""
     url = "https://m.jlc.com/api/activity/member/day/activity/selectBlindBoxGiftPopup"
-    payload = {"activityAccessId": "fc7534debba644c5a0d26af52651d16f"}
+    # payload = {"activityAccessId": "fc7534debba644c5a0d26af52651d16f"}  # 第一期
+    payload = {"activityAccessId": "bf69c3403f094a52a787bfae528da7ea"}  # 第二期
     res = api_with_retry(driver, url, "POST", payload, headers)
     if res and res.get("success") == True and res.get("code") == 200:
         giftConfigList = res.get("data", {}).get("giftConfigList")
@@ -654,7 +666,8 @@ def api_Popup_BlindBoxGift(driver, headers):
 def api_get_MyWinning(driver, headers):
     """查询是否中奖"""
     url = "https://m.jlc.com/api/activity/member/day/activity/selectMyWinning"
-    payload = {"activityAccessId": "fc7534debba644c5a0d26af52651d16f"}
+    # payload = {"activityAccessId": "fc7534debba644c5a0d26af52651d16f"}  # 第一期
+    payload = {"activityAccessId": "bf69c3403f094a52a787bfae528da7ea"}  # 第二期
     res = api_with_retry(driver, url, "POST", payload, headers)
     if isinstance(res, dict) and res.get("success") == True and res.get("code") == 200:
         isFreeOrderWinning = res.get("data", {}).get("isFreeOrderWinning", False)
@@ -736,23 +749,15 @@ def perform_brand_activities(driver_wrapper, account_index, username, activity_p
             if activity_period == "1":
                 log(f"账号 {account_index} - 活动蓄力期，进入投票流程 ...")
 
-                # if result['vote_status'] in ['未投票']:
-                #     is_voted = api_check_vote(driver, headers)
-                #     if is_voted:
-                #         result['vote_status'] = '已投票'
-                #         log(f"账号 {account_index} - 状态: {result['vote_status']}")
-                #     else:
-                #         log(f"账号 {account_index} - 未投票，准备发包投票...")
-                #         if api_do_vote(driver, headers):
-                #             result['vote_status'] = '投票成功'
-                #             log(f"账号 {account_index} - ✅ 投票成功")
-                #         else:
-                #             result['vote_status'] = '投票失败'
-                #             raise Exception("投票接口调用逻辑拒绝（可能是未登录导致 401 或活动已结束）")
+                is_voted, myVotedProductSku = api_check_vote(driver, headers)
+                if is_voted:
+                    log(f"账号 {account_index} - 已投票")
+                    VotedProductSku = myVotedProductSku
+                else:
+                    log(f"账号 {account_index} - 未投票")
+                    VotedProductSku = "SKUJ5O"
 
-
-
-                if api_do_vote(driver, headers):
+                if api_do_vote(driver, headers, VotedProductSku):
                     result['vote_status'] = '投票成功'
                     log(f"账号 {account_index} - ✅ 投票成功")
                 else:
