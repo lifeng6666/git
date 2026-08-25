@@ -755,7 +755,7 @@ def perform_brand_activities(driver_wrapper, account_index, username, activity_p
                     VotedProductSku = myVotedProductSku
                 else:
                     log(f"账号 {account_index} - 未投票")
-                    VotedProductSku = "SKUJ5O"
+                    VotedProductSku = "SKUJYE"
 
                 if api_do_vote(driver, headers, VotedProductSku):
                     result['vote_status'] = '投票成功'

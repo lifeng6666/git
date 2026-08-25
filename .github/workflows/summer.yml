@@ -1,4 +1,4 @@
-name: 盛夏福利日第一期
+name: 盛夏福利日
 
 on:
   workflow_dispatch:  # 手动触发
@@ -157,4 +157,4 @@ jobs:
           DISPLAY: ':99'
           ACT_PERIOD: ${{ github.event.inputs.activity_period }}
         run: |
-          python ./summer-lite.py "$CURRENT_BATCH_USER" "$CURRENT_BATCH_PASS" "$ACT_PERIOD" "true"
+          python ./summer.py "$CURRENT_BATCH_USER" "$CURRENT_BATCH_PASS" "$ACT_PERIOD" "true"
